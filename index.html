@@ -150,7 +150,7 @@
       const cLatLng = [centre.latitude, centre.longitude];
       L.marker(cLatLng).addTo(layerGroup).bindPopup("Centre").openPopup();
 
-      radiusCircle = L.circle(cLatLng, {radius: radiusKm*1000}).addTo(map);
+      radiusCircle = L.circle(cLatLng, {radius: radiusKm*1000, fill: false}).addTo(map);
 
       let inside = 0, outside = 0;
       const bounds = [cLatLng];
