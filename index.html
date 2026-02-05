@@ -168,6 +168,8 @@
       const d = distanceKm(centre.latitude, centre.longitude, h.latitude, h.longitude);
       const ll = [h.latitude, h.longitude];
       bounds.push(ll);
+
+      if (d <= radiusKm) inside++; else outside++;
     
       const marker = L.circleMarker(ll, {
         radius: 6,
