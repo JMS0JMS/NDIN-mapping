@@ -89,9 +89,11 @@
 
 <script>
   const map = L.map("map").setView([51.5074, -0.1278], 11);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}" + (L.Browser.retina ? "@2x.png" : ".png"), {
+    subdomains: "abcd",
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://carto.com/attributions">CARTO</a>'
+}).addTo(map);
 
   const layerGroup = L.layerGroup().addTo(map);
   let radiusCircle;
