@@ -105,6 +105,9 @@
       display:block;
       margin: 10px 0 6px;
     }
+    input, textarea, select, button{
+      font-family: inherit;
+    }
     input, textarea, select{
       width:100%;
       border: 1px solid var(--muted);
@@ -132,6 +135,8 @@
       touch-action: manipulation;
       transition: transform .02s ease, box-shadow .15s ease, opacity .15s ease;
       user-select:none;
+      background:#fff;
+      color: var(--ink);
     }
     .btnPrimary{
       background: var(--ink);
@@ -142,8 +147,39 @@
     }
     .btnPrimary:active{ transform: translateY(1px); }
     .btnGhost{ background:#fff; color: var(--ink); }
+    .btnSmall{ padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 900; }
     .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
+    /* Tabs */
+    .tabs{
+      display:flex;
+      gap:8px;
+      padding: 6px;
+      background: rgba(3,19,102,.04);
+      border: 1px solid var(--muted);
+      border-radius: 14px;
+      margin-top: 6px;
+    }
+    .tab{
+      flex:1;
+      text-align:center;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      font-weight: 900;
+      font-size: 12px;
+      color: rgba(3,19,102,.80);
+      cursor:pointer;
+    }
+    .tab.active{
+      background:#fff;
+      border-color: rgba(3,19,102,.14);
+      color: var(--ink);
+      box-shadow: 0 8px 18px rgba(3,19,102,.08);
+    }
+
+    /* Upload */
     .dropzone{
       border: 1.5px dashed rgba(3,19,102,.25);
       border-radius: 14px;
@@ -152,6 +188,7 @@
       display:flex;
       flex-direction:column;
       gap: 8px;
+      margin-top: 10px;
     }
     .dropzone.dragover{
       border-color: var(--teal);
@@ -167,20 +204,14 @@
       border-radius: 10px;
       background: #fff;
       border: 1px solid rgba(3,19,102,.16);
-      font-weight: 800;
+      font-weight: 900;
       cursor:pointer;
       white-space:nowrap;
     }
-
-    .chipRow{ display:flex; gap:8px; flex-wrap:wrap; margin-top: 8px; }
-    .chip{
+    .uploadStatus{
       font-size: 12px;
-      font-weight: 800;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(3,19,102,.12);
-      background: rgba(3,19,102,.04);
-      color: rgba(3,19,102,.85);
+      font-weight: 900;
+      color: rgba(3,19,102,.80);
     }
 
     /* Manual entry table */
@@ -194,17 +225,15 @@
     .manualHead{
       display:grid;
       grid-template-columns: 1fr 140px;
-      gap: 0;
       padding: 10px 12px;
       background: rgba(3,19,102,.04);
       border-bottom: 1px solid var(--muted);
       font-size: 12px;
-      font-weight: 800;
+      font-weight: 900;
     }
     .manualGrid{
       display:grid;
       grid-template-columns: 1fr 140px;
-      gap: 0;
     }
     .manualGrid input{
       border: 0;
@@ -214,20 +243,17 @@
       padding: 10px 12px;
       font-size: 13px;
     }
-    .manualGrid input:nth-last-child(-n+2){ border-bottom: 0; } /* last row */
     .manualGrid input:focus{
       outline:none;
       background: rgba(0,163,158,.06);
     }
-    .manualNote{
-      font-size: 12px;
-      color: rgba(3,19,102,.72);
-      margin-top: 8px;
+    .manualGrid .endRow{
+      border-bottom: 0 !important;
     }
-    .uploadStatus{
-      font-size: 12px;
-      font-weight: 800;
-      color: rgba(3,19,102,.80);
+    .manualActions{
+      display:flex;
+      justify-content:flex-end;
+      margin-top: 10px;
     }
 
     .stats{
@@ -342,40 +368,56 @@
         <span class="badge">2</span>
       </div>
 
-      <div id="dropzone" class="dropzone">
-        <div class="dzTop">
-          <div>
-            <strong>Upload a spreadsheet</strong>
-            <div class="small">Drag & drop, or tap to choose</div>
+      <div class="tabs" role="tablist" aria-label="Hub input method">
+        <button id="tabBulk" class="tab active" type="button" role="tab" aria-selected="true">Bulk upload</button>
+        <button id="tabManual" class="tab" type="button" role="tab" aria-selected="false">Manual upload</button>
+      </div>
+
+      <!-- Bulk panel -->
+      <div id="panelBulk">
+        <div id="dropzone" class="dropzone" style="margin-top:10px;">
+          <div class="dzTop">
+            <div>
+              <strong>Upload a spreadsheet</strong>
+              <div class="small">Drag & drop, or tap to choose</div>
+            </div>
+            <label class="fileBtn">
+              Choose file
+              <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt,text/csv,text/tab-separated-values,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
+            </label>
           </div>
-          <label class="fileBtn">
-            Choose file
-            <input id="fileInput" type="file" accept=".xlsx,.xls,.csv,.tsv,.txt,text/csv,text/tab-separated-values,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
-          </label>
-        </div>
 
+          <div class="hint">
+            Format required: <strong>two columns, no headers</strong><br>
+            Column A = <strong>Hub Name</strong>, Column B = <strong>Postcode</strong>
+          </div>
+
+          <div class="uploadStatus" id="uploadStatus">No file loaded yet.</div>
+        </div>
+      </div>
+
+      <!-- Manual panel -->
+      <div id="panelManual" style="display:none; margin-top:10px;">
         <div class="hint">
-          Format required: <strong>two columns, no headers</strong><br>
-          Column A = <strong>Hub Name</strong>, Column B = <strong>Postcode</strong>
+          Add hubs manually below. Use <strong>Add more</strong> to insert additional rows.
         </div>
 
-        <div class="uploadStatus" id="uploadStatus">No file loaded yet.</div>
-      </div>
-
-      <div class="chipRow">
-        <span class="chip">Manual entry is limited to 10 hubs</span>
-        <span class="chip">More than 10 → upload required</span>
-      </div>
-
-      <label>Manual entry (up to 10)</label>
-      <div class="manualWrap">
-        <div class="manualHead">
-          <div>Hub name</div>
-          <div>Postcode</div>
+        <div class="manualWrap">
+          <div class="manualHead">
+            <div>Hub name</div>
+            <div>Postcode</div>
+          </div>
+          <div class="manualGrid" id="manualGrid"></div>
         </div>
-        <div class="manualGrid" id="manualGrid"></div>
+
+        <div class="manualActions">
+          <button id="addRowBtn" class="btn btnSmall" type="button">Add more</button>
+        </div>
+
+        <div class="hint" style="margin-top:8px;">
+          Tip: if you need lots of hubs, bulk upload is faster.
+        </div>
       </div>
-      <div class="manualNote">If you need more than 10 hubs, use upload above. Uploaded data is used automatically once loaded.</div>
     </section>
 
     <!-- Stage 3 -->
@@ -446,434 +488,4 @@
 
   // Minimal basemap (CARTO Positron)
   L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}" + (L.Browser.retina ? "@2x.png" : ".png"),
-    {
-      subdomains: "abcd",
-      maxZoom: 20,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-        '&copy; <a href="https://carto.com/attributions">CARTO</a>'
-    }
-  ).addTo(map);
-
-  const layerGroup = L.layerGroup().addTo(map);
-  let radiusCircle = null;
-  let radiusGlow = null;
-  let legendControl = null;
-
-  // Uploaded hubs live here once loaded successfully
-  let uploadedHubs = null;
-
-  function setError(msg){ document.getElementById("err").textContent = msg || ""; }
-  function setCounts(i,o,t){
-    document.getElementById("inCount").textContent = i;
-    document.getElementById("outCount").textContent = o;
-    document.getElementById("totalCount").textContent = t;
-  }
-
-  function clearAll(){
-    setError("");
-    layerGroup.clearLayers();
-    if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
-    if (radiusGlow) { map.removeLayer(radiusGlow); radiusGlow = null; }
-    if (legendControl) { map.removeControl(legendControl); legendControl = null; }
-    setCounts(0,0,0);
-    uploadedHubs = null;
-    document.getElementById("uploadStatus").textContent = "No file loaded yet.";
-    // clear manual inputs
-    for (const el of document.querySelectorAll(".manualGrid input")) el.value = "";
-  }
-
-  function norm(pc) {
-    return (pc || "").trim().toUpperCase().replace(/\s+/g, "");
-  }
-
-  // Basic UK postcode heuristic (good enough for validation + swapped detection)
-  const POSTCODE_RE = /^([A-Z]{1,2}\d[A-Z\d]?)(\d[A-Z]{2})$/;
-
-  function looksLikePostcode(s){
-    const n = norm(s);
-    if (!n) return false;
-    return POSTCODE_RE.test(n);
-  }
-
-  // Hub icon (gtf-logo.png should exist alongside index.html)
-  const HUB_ICON = L.icon({
-    iconUrl: "./gtf-logo.png",
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    popupAnchor: [0, -10]
-  });
-
-  // Haversine distance in km
-  function distanceKm(aLat, aLon, bLat, bLon) {
-    const R = 6371;
-    const dLat = (bLat - aLat) * Math.PI / 180;
-    const dLon = (bLon - aLon) * Math.PI / 180;
-    const lat1 = aLat * Math.PI / 180;
-    const lat2 = bLat * Math.PI / 180;
-    const h =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(h));
-  }
-
-  async function geocodeSingle(pc) {
-    const r = await fetch("https://api.postcodes.io/postcodes/" + encodeURIComponent(pc));
-    const j = await r.json();
-    if (!j.result) throw new Error("Invalid centre postcode");
-    return j.result;
-  }
-
-  async function geocodeBulk(list) {
-    const r = await fetch("https://api.postcodes.io/postcodes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ postcodes: list })
-    });
-    const j = await r.json();
-    if (!j.result) throw new Error("Bulk lookup failed");
-    // Keep successful only:
-    return j.result.filter(x => x.result).map(x => x.result);
-  }
-
-  // --- Ring colour preset logic ---
-  const ringPreset = document.getElementById("ringPreset");
-  const customColorWrap = document.getElementById("customColorWrap");
-  const ringColorInput = document.getElementById("ringColor");
-
-  function getRingColor(){
-    const preset = ringPreset.value;
-    if (preset === "custom") return ringColorInput.value || "#00a39e";
-    return preset || "#00a39e";
-  }
-
-  ringPreset.addEventListener("change", () => {
-    const isCustom = ringPreset.value === "custom";
-    customColorWrap.style.display = isCustom ? "block" : "none";
-    if (!isCustom) ringColorInput.value = ringPreset.value;
-  });
-
-  // --- Legend ---
-  function addLegend(ringColor){
-    if (legendControl) { map.removeControl(legendControl); legendControl = null; }
-
-    legendControl = L.control({ position: "bottomright" });
-    legendControl.onAdd = function(){
-      const div = L.DomUtil.create("div", "legend");
-      div.innerHTML = `
-        <div class="legendTitle">Legend</div>
-        <div class="legendRow">
-          <span class="legendDot" style="background: var(--ink)"></span>
-          <span>Centre</span>
-        </div>
-        <div class="legendRow">
-          <img src="./gtf-logo.png" alt="" style="width:16px;height:16px;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.15);">
-          <span>Hub</span>
-        </div>
-        <div class="legendRow">
-          <span class="legendRing" style="border-color:${ringColor}"></span>
-          <span>Radius ring</span>
-        </div>
-      `;
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-      return div;
-    };
-    legendControl.addTo(map);
-  }
-
-  // --- Manual entry (10 rows) ---
-  const manualGrid = document.getElementById("manualGrid");
-  function buildManualGrid(){
-    manualGrid.innerHTML = "";
-    for (let i = 0; i < 10; i++){
-      const name = document.createElement("input");
-      name.placeholder = `Hub ${i+1} name`;
-      name.setAttribute("data-col", "name");
-      const pc = document.createElement("input");
-      pc.placeholder = `Postcode`;
-      pc.autocapitalize = "characters";
-      pc.setAttribute("data-col", "postcode");
-      manualGrid.appendChild(name);
-      manualGrid.appendChild(pc);
-    }
-  }
-  buildManualGrid();
-
-  function getManualHubs(){
-    const inputs = Array.from(manualGrid.querySelectorAll("input"));
-    const hubs = [];
-    for (let i = 0; i < inputs.length; i += 2){
-      const name = (inputs[i].value || "").trim();
-      const postcodeRaw = (inputs[i+1].value || "").trim();
-      const postcode = norm(postcodeRaw);
-      if (!name && !postcode) continue;
-      hubs.push({ name: name || "Hub", postcode });
-    }
-    return hubs;
-  }
-
-  // --- Upload parsing (XLSX/XLS/CSV/TSV/TXT) ---
-  const dropzone = document.getElementById("dropzone");
-  const fileInput = document.getElementById("fileInput");
-  const uploadStatus = document.getElementById("uploadStatus");
-
-  async function readAsArrayBuffer(file){
-    return await file.arrayBuffer();
-  }
-
-  function sheetToRows(workbook){
-    const sheetName = workbook.SheetNames?.[0];
-    if (!sheetName) return [];
-    const ws = workbook.Sheets[sheetName];
-    // header:1 gives arrays of cell values (no headers)
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: "" });
-    return rows;
-  }
-
-  function normaliseRowsToTwoCols(rows){
-    // keep only rows that have at least something in col A or B
-    const cleaned = [];
-    for (const r of rows){
-      const a = (r?.[0] ?? "").toString().trim();
-      const b = (r?.[1] ?? "").toString().trim();
-      if (!a && !b) continue;
-      cleaned.push([a, b]);
-    }
-    return cleaned;
-  }
-
-  function validateAndMaybeSwap(rowsTwoCols){
-    // Expect: A = name (non-postcode usually), B = postcode
-    let good = 0, swapped = 0, ambiguous = 0;
-
-    for (const [a,b] of rowsTwoCols){
-      const aIsPC = looksLikePostcode(a);
-      const bIsPC = looksLikePostcode(b);
-
-      if (bIsPC && !aIsPC) good++;
-      else if (aIsPC && !bIsPC) swapped++;
-      else ambiguous++;
-    }
-
-    // If they clearly look swapped, ask to continue with swap
-    if (swapped > 0 && swapped >= good * 1.5){
-      const msg =
-        `Your file looks like the columns may be the wrong way around.\n\n` +
-        `Expected: Column A = Hub Name, Column B = Postcode\n` +
-        `Detected: ${swapped} rows where Column A looks like a postcode, and Column B does not.\n` +
-        `Detected: ${good} rows that match the expected format.\n\n` +
-        `Are you sure you want to continue?\n\n` +
-        `OK = Continue (we will swap columns A/B)\n` +
-        `Cancel = Stop (you can fix the file and re-upload)`;
-      const ok = window.confirm(msg);
-      if (!ok) return { ok:false, reason:"Upload cancelled." };
-
-      const swappedRows = rowsTwoCols.map(([a,b]) => [b,a]);
-      return { ok:true, rows: swappedRows, swapped:true };
-    }
-
-    // If almost nothing matches either way, hard error
-    if (good === 0 && swapped === 0){
-      return {
-        ok:false,
-        reason:
-          `Upload format not recognised.\n\n` +
-          `Required: two columns, no headers (A = Hub Name, B = Postcode).\n` +
-          `We couldn't confidently identify postcodes in either column.\n\n` +
-          `Tip: check there are no header rows, and that UK postcodes are in column B.`
-      };
-    }
-
-    // If mixed, but still plausible, allow through (no autofill / no prompts)
-    return { ok:true, rows: rowsTwoCols, swapped:false };
-  }
-
-  function rowsToHubs(rowsTwoCols){
-    return rowsTwoCols.map(([a,b]) => ({
-      name: (a || "").toString().trim() || "Hub",
-      postcode: norm(b || "")
-    })).filter(h => h.postcode);
-  }
-
-  async function handleUploadFile(file){
-    setError("");
-    uploadedHubs = null;
-    uploadStatus.textContent = "Loading…";
-
-    try{
-      const buf = await readAsArrayBuffer(file);
-
-      // Let SheetJS infer format from data
-      const wb = XLSX.read(buf, { type: "array" });
-      let rows = sheetToRows(wb);
-      rows = normaliseRowsToTwoCols(rows);
-
-      // Enforce exactly two columns conceptually: if row has more than 2, we ignore extras,
-      // but if columns are empty, it's still invalid.
-      if (!rows.length) throw new Error("No usable rows found. Ensure your file has data in the first two columns.");
-
-      // Check for accidental headers (not allowed)
-      // If first row contains obvious header words, prompt: are you sure?
-      const firstA = (rows[0][0] || "").toString().toLowerCase();
-      const firstB = (rows[0][1] || "").toString().toLowerCase();
-      const headerish = (firstA.includes("hub") || firstA.includes("name") || firstA.includes("organisation")) &&
-                        (firstB.includes("post") || firstB.includes("zip") || firstB.includes("code"));
-
-      if (headerish){
-        const ok = window.confirm(
-          `Your first row looks like it might be a header.\n\n` +
-          `This tool expects NO headers.\n\n` +
-          `OK = Continue anyway (we'll treat the first row as data)\n` +
-          `Cancel = Stop (remove headers and re-upload)`
-        );
-        if (!ok) throw new Error("Upload cancelled (header row detected).");
-      }
-
-      const verdict = validateAndMaybeSwap(rows);
-      if (!verdict.ok) throw new Error(verdict.reason);
-
-      const hubs = rowsToHubs(verdict.rows);
-      if (!hubs.length) throw new Error("No valid hub postcodes found in column B.");
-
-      uploadedHubs = hubs;
-
-      const swapNote = verdict.swapped ? " (columns swapped)" : "";
-      uploadStatus.textContent = `Loaded: ${uploadedHubs.length} hubs from "${file.name}"${swapNote}.`;
-
-      // If user uploaded >10 hubs, great (meets your rule). If <=10, still fine.
-    } catch (e){
-      uploadedHubs = null;
-      uploadStatus.textContent = "No file loaded yet.";
-      setError(e?.message || String(e));
-    }
-  }
-
-  fileInput.addEventListener("change", async (e) => {
-    const f = e.target.files?.[0];
-    if (f) await handleUploadFile(f);
-    fileInput.value = "";
-  });
-
-  ["dragenter","dragover"].forEach(evt => {
-    dropzone.addEventListener(evt, (e) => {
-      e.preventDefault(); e.stopPropagation();
-      dropzone.classList.add("dragover");
-    });
-  });
-  ["dragleave","drop"].forEach(evt => {
-    dropzone.addEventListener(evt, (e) => {
-      e.preventDefault(); e.stopPropagation();
-      dropzone.classList.remove("dragover");
-    });
-  });
-  dropzone.addEventListener("drop", async (e) => {
-    const file = e.dataTransfer?.files?.[0];
-    if (file) await handleUploadFile(file);
-  });
-
-  // --- Main run ---
-  async function run() {
-    setError("");
-    const runBtn = document.getElementById("runBtn");
-    runBtn.disabled = true;
-
-    layerGroup.clearLayers();
-    if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
-    if (radiusGlow) { map.removeLayer(radiusGlow); radiusGlow = null; }
-
-    try {
-      const centrePc = norm(document.getElementById("centre").value);
-      const centreName = (document.getElementById("centreName")?.value || "").trim() || "Centre";
-      const radiusKm = Number(document.getElementById("radius").value);
-      const ringColor = getRingColor();
-
-      if (!centrePc) throw new Error("Enter a central postcode.");
-      if (!Number.isFinite(radiusKm) || radiusKm <= 0) throw new Error("Radius must be a positive number (km).");
-
-      // Choose hubs source:
-      // - If uploadedHubs exists, use it (supports >10)
-      // - Otherwise use manual (limited to 10)
-      let hubs = null;
-      if (uploadedHubs && uploadedHubs.length){
-        hubs = uploadedHubs;
-      } else {
-        hubs = getManualHubs();
-        if (hubs.length > 10) throw new Error("Manual entry is limited to 10 hubs. Please upload a spreadsheet for more than 10.");
-      }
-
-      if (!hubs || !hubs.length) throw new Error("Add hubs via upload (any amount) or manual entry (up to 10).");
-
-      // Validate postcodes for manual
-      const invalidManual = hubs.filter(h => !looksLikePostcode(h.postcode));
-      if (!uploadedHubs && invalidManual.length){
-        throw new Error(`One or more manual postcodes don’t look valid.\nExample: "${invalidManual[0].postcode || "(blank)"}"\n\nTip: UK postcodes only, e.g. "E1 6AN"`);
-      }
-
-      const centre = await geocodeSingle(centrePc);
-
-      // Bulk geocode (postcodes only)
-      const hubResults = await geocodeBulk(hubs.map(h => h.postcode));
-
-      const cLatLng = [centre.latitude, centre.longitude];
-
-      // Centre marker
-      L.marker(cLatLng)
-        .addTo(layerGroup)
-        .bindPopup(`<strong>${centreName}</strong>`)
-        .bindTooltip(centreName, { permanent:false, direction:"top", offset:[0,-8] })
-        .openPopup();
-
-      // Radius glow (soft) + ring (crisp, thicker)
-      radiusGlow = L.circle(cLatLng, {
-        radius: radiusKm * 1000,
-        fill: false,
-        color: ringColor,
-        opacity: 0.22,
-        weight: 14,
-        interactive: false
-      }).addTo(map);
-
-      radiusCircle = L.circle(cLatLng, {
-        radius: radiusKm * 1000,
-        fill: false,
-        color: ringColor,
-        opacity: 0.95,
-        weight: 6
-      }).addTo(map);
-
-      // Legend
-      addLegend(ringColor);
-
-      let inside = 0, outside = 0;
-      const bounds = [cLatLng];
-
-      // IMPORTANT: postcodes.io bulk response can drop invalid postcodes.
-      // We still use the same index order assumption for successful ones.
-      hubResults.forEach((h, i) => {
-        const hubMeta = hubs[i];
-        const d = distanceKm(centre.latitude, centre.longitude, h.latitude, h.longitude);
-        const ll = [h.latitude, h.longitude];
-        bounds.push(ll);
-
-        if (d <= radiusKm) inside++; else outside++;
-
-        const marker = L.marker(ll, { icon: HUB_ICON }).addTo(layerGroup);
-        marker.bindTooltip(hubMeta?.name || "Hub", { direction:"top", offset:[0,-6], opacity:0.95, sticky:true });
-        marker.bindPopup(`<strong>${hubMeta?.name || "Hub"}</strong>`);
-      });
-
-      map.fitBounds(bounds, { padding: [30, 30] });
-      setCounts(inside, outside, hubResults.length);
-
-    } catch (e) {
-      setError(e?.message || String(e));
-      setCounts(0,0,0);
-    } finally {
-      runBtn.disabled = false;
-    }
-  }
-</script>
-</body>
-</html>
+    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}" + (L.Browser.retina ?_
