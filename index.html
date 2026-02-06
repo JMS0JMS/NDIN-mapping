@@ -33,7 +33,6 @@
     }
     .wrap{ display:flex; height:100vh; width:100%; }
 
-    /* Sidebar */
     .sidebar{
       width: 390px;
       background: var(--bg);
@@ -61,7 +60,6 @@
     .brand .title strong{ font-size: 18px; letter-spacing:.2px; line-height: 1.25; }
     .brand .title span{ font-size: 12px; color: rgba(3,19,102,.70); }
 
-    /* Stage sections with progress rail */
     .stage{
       position: relative;
       background: #fff;
@@ -105,9 +103,7 @@
       display:block;
       margin: 10px 0 6px;
     }
-    input, textarea, select, button{
-      font-family: inherit;
-    }
+    input, textarea, select, button{ font-family: inherit; }
     input, textarea, select{
       width:100%;
       border: 1px solid var(--muted);
@@ -150,7 +146,6 @@
     .btnSmall{ padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 900; }
     .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
-    /* Tabs */
     .tabs{
       display:flex;
       gap:8px;
@@ -179,7 +174,6 @@
       box-shadow: 0 8px 18px rgba(3,19,102,.08);
     }
 
-    /* Upload */
     .dropzone{
       border: 1.5px dashed rgba(3,19,102,.25);
       border-radius: 14px;
@@ -214,7 +208,14 @@
       color: rgba(3,19,102,.80);
     }
 
-    /* Manual entry table */
+    .fileInput{
+      position: absolute;
+      left: -9999px;
+      width: 1px;
+      height: 1px;
+      opacity: 0.01;
+    }
+
     .manualWrap{
       margin-top: 10px;
       border: 1px solid var(--muted);
@@ -247,9 +248,7 @@
       outline:none;
       background: rgba(0,163,158,.06);
     }
-    .manualGrid .endRow{
-      border-bottom: 0 !important;
-    }
+    .manualGrid .endRow{ border-bottom: 0 !important; }
     .manualActions{
       display:flex;
       justify-content:flex-end;
@@ -278,10 +277,8 @@
       white-space: pre-wrap;
     }
 
-    /* Map */
     #map{ flex: 1; height: 100vh; }
 
-    /* Leaflet legend */
     .legend{
       background: rgba(255,255,255,.92);
       border: 1px solid rgba(3,19,102,.12);
@@ -295,31 +292,17 @@
       line-height: 1.35;
       min-width: 160px;
     }
-    .legendTitle{
-      font-weight: 900;
-      margin-bottom: 6px;
-      letter-spacing: .2px;
-      font-size: 12px;
-    }
-    .legendRow{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin: 6px 0;
-    }
+    .legendTitle{ font-weight: 900; margin-bottom: 6px; letter-spacing: .2px; font-size: 12px; }
+    .legendRow{ display:flex; align-items:center; gap:8px; margin: 6px 0; }
     .legendDot{
-      width: 12px;
-      height: 12px;
-      border-radius: 999px;
+      width: 12px; height: 12px; border-radius: 999px;
       background: var(--ink);
       border: 2px solid #fff;
       box-shadow: 0 2px 6px rgba(0,0,0,.18);
       flex: 0 0 auto;
     }
     .legendRing{
-      width: 12px;
-      height: 12px;
-      border-radius: 999px;
+      width: 12px; height: 12px; border-radius: 999px;
       border: 2px solid var(--teal);
       background: transparent;
       flex: 0 0 auto;
@@ -331,16 +314,6 @@
       #map{ height: 60vh; }
       .manualHead, .manualGrid{ grid-template-columns: 1fr 120px; }
     }
-
-    .fileInput{
-      position: absolute;
-      left: -9999px;  /* off-screen, but still "present" for iOS */
-      width: 1px;
-      height: 1px;
-      opacity: 0.01;
-    }
-
-    
   </style>
 </head>
 
@@ -466,18 +439,9 @@
       </div>
 
       <div class="stats">
-        <div class="stat">
-          <div class="k">Inside radius</div>
-          <div class="v" id="inCount">0</div>
-        </div>
-        <div class="stat">
-          <div class="k">Outside radius</div>
-          <div class="v" id="outCount">0</div>
-        </div>
-        <div class="stat">
-          <div class="k">Total mapped</div>
-          <div class="v" id="totalCount">0</div>
-        </div>
+        <div class="stat"><div class="k">Inside radius</div><div class="v" id="inCount">0</div></div>
+        <div class="stat"><div class="k">Outside radius</div><div class="v" id="outCount">0</div></div>
+        <div class="stat"><div class="k">Total mapped</div><div class="v" id="totalCount">0</div></div>
       </div>
 
       <div class="error" id="err"></div>
@@ -492,14 +456,8 @@
 </div>
 
 <script>
-  const chooseFileBtn = document.getElementById("chooseFileBtn");
-  chooseFileBtn.addEventListener("click", () => fileInput.click());
-
-  
   // --- Map setup ---
   const map = L.map("map").setView([51.5074, -0.1278], 11);
-
-  // Minimal basemap (CARTO Positron)
   L.tileLayer(
     "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}" + (L.Browser.retina ? "@2x.png" : ".png"),
     {
@@ -538,23 +496,13 @@
     setCounts(0,0,0);
     uploadedHubs = null;
     document.getElementById("uploadStatus").textContent = "No file loaded yet.";
-    // clear manual inputs
     for (const el of document.querySelectorAll("#manualGrid input")) el.value = "";
   }
 
-  function norm(pc) {
-    return (pc || "").trim().toUpperCase().replace(/\s+/g, "");
-  }
-
-  // Basic UK postcode heuristic
+  function norm(pc) { return (pc || "").trim().toUpperCase().replace(/\s+/g, ""); }
   const POSTCODE_RE = /^([A-Z]{1,2}\d[A-Z\d]?)(\d[A-Z]{2})$/;
-  function looksLikePostcode(s){
-    const n = norm(s);
-    if (!n) return false;
-    return POSTCODE_RE.test(n);
-  }
+  function looksLikePostcode(s){ const n = norm(s); return !!n && POSTCODE_RE.test(n); }
 
-  // Hub icon
   const HUB_ICON = L.icon({
     iconUrl: "./gtf-logo.png",
     iconSize: [22, 22],
@@ -562,7 +510,6 @@
     popupAnchor: [0, -10]
   });
 
-  // Haversine distance in km
   function distanceKm(aLat, aLon, bLat, bLon) {
     const R = 6371;
     const dLat = (bLat - aLat) * Math.PI / 180;
@@ -593,44 +540,34 @@
     return j.result.filter(x => x.result).map(x => x.result);
   }
 
-  // --- Ring colour preset logic ---
+  // Ring colour
   const ringPreset = document.getElementById("ringPreset");
   const customColorWrap = document.getElementById("customColorWrap");
   const ringColorInput = document.getElementById("ringColor");
-
   function getRingColor(){
     const preset = ringPreset.value;
     if (preset === "custom") return ringColorInput.value || "#00a39e";
     return preset || "#00a39e";
   }
-
   ringPreset.addEventListener("change", () => {
     const isCustom = ringPreset.value === "custom";
     customColorWrap.style.display = isCustom ? "block" : "none";
     if (!isCustom) ringColorInput.value = ringPreset.value;
   });
 
-  // --- Legend ---
   function addLegend(ringColor){
     if (legendControl) { map.removeControl(legendControl); legendControl = null; }
-
     legendControl = L.control({ position: "bottomright" });
     legendControl.onAdd = function(){
       const div = L.DomUtil.create("div", "legend");
       div.innerHTML = `
         <div class="legendTitle">Legend</div>
-        <div class="legendRow">
-          <span class="legendDot" style="background: var(--ink)"></span>
-          <span>Centre</span>
-        </div>
+        <div class="legendRow"><span class="legendDot"></span><span>Centre</span></div>
         <div class="legendRow">
           <img src="./gtf-logo.png" alt="" style="width:16px;height:16px;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.15);">
           <span>Hub</span>
         </div>
-        <div class="legendRow">
-          <span class="legendRing" style="border-color:${ringColor}"></span>
-          <span>Radius ring</span>
-        </div>
+        <div class="legendRow"><span class="legendRing" style="border-color:${ringColor}"></span><span>Radius ring</span></div>
       `;
       L.DomEvent.disableClickPropagation(div);
       L.DomEvent.disableScrollPropagation(div);
@@ -639,7 +576,7 @@
     legendControl.addTo(map);
   }
 
-  // --- Tabs logic ---
+  // Tabs
   const tabBulk = document.getElementById("tabBulk");
   const tabManual = document.getElementById("tabManual");
   const panelBulk = document.getElementById("panelBulk");
@@ -648,65 +585,42 @@
   function setMode(mode){
     hubMode = mode;
     if (mode === "bulk"){
-      tabBulk.classList.add("active");
-      tabManual.classList.remove("active");
-      tabBulk.setAttribute("aria-selected", "true");
-      tabManual.setAttribute("aria-selected", "false");
-      panelBulk.style.display = "block";
-      panelManual.style.display = "none";
+      tabBulk.classList.add("active"); tabManual.classList.remove("active");
+      tabBulk.setAttribute("aria-selected", "true"); tabManual.setAttribute("aria-selected", "false");
+      panelBulk.style.display = "block"; panelManual.style.display = "none";
     } else {
-      tabManual.classList.add("active");
-      tabBulk.classList.remove("active");
-      tabManual.setAttribute("aria-selected", "true");
-      tabBulk.setAttribute("aria-selected", "false");
-      panelManual.style.display = "block";
-      panelBulk.style.display = "none";
+      tabManual.classList.add("active"); tabBulk.classList.remove("active");
+      tabManual.setAttribute("aria-selected", "true"); tabBulk.setAttribute("aria-selected", "false");
+      panelManual.style.display = "block"; panelBulk.style.display = "none";
     }
   }
-
   tabBulk.addEventListener("click", () => setMode("bulk"));
   tabManual.addEventListener("click", () => setMode("manual"));
 
-  // --- Manual entry (dynamic rows) ---
+  // Manual dynamic rows
   const manualGrid = document.getElementById("manualGrid");
   const addRowBtn = document.getElementById("addRowBtn");
-  let manualRows = 10;
-
-  function addManualRow(){
-    const name = document.createElement("input");
-    name.placeholder = `Hub name`;
-    name.setAttribute("data-col", "name");
-
-    const pc = document.createElement("input");
-    pc.placeholder = `Postcode`;
-    pc.autocapitalize = "characters";
-    pc.setAttribute("data-col", "postcode");
-
-    manualGrid.appendChild(name);
-    manualGrid.appendChild(pc);
-
-    manualRows += 1;
-    refreshManualRowBorders();
-  }
 
   function refreshManualRowBorders(){
-    // Remove "endRow" from all
     const inputs = Array.from(manualGrid.querySelectorAll("input"));
     inputs.forEach(i => i.classList.remove("endRow"));
-    // Add "endRow" to last two inputs (name+postcode)
     if (inputs.length >= 2){
       inputs[inputs.length - 1].classList.add("endRow");
       inputs[inputs.length - 2].classList.add("endRow");
     }
   }
 
-  function buildManualGrid(initialRows = 10){
-    manualGrid.innerHTML = "";
-    manualRows = 0;
-    for (let i=0; i<initialRows; i++) addManualRow();
+  function addManualRow(){
+    const name = document.createElement("input");
+    name.placeholder = "Hub name";
+    const pc = document.createElement("input");
+    pc.placeholder = "Postcode";
+    pc.autocapitalize = "characters";
+    manualGrid.appendChild(name);
+    manualGrid.appendChild(pc);
+    refreshManualRowBorders();
   }
-  buildManualGrid(10);
-
+  for (let i=0; i<10; i++) addManualRow();
   addRowBtn.addEventListener("click", () => addManualRow());
 
   function getManualHubs(){
@@ -722,16 +636,36 @@
     return hubs;
   }
 
-  // --- Upload parsing (XLSX/XLS/CSV/TSV/TXT) ---
+  // Upload elements (IMPORTANT: defined before use)
   const dropzone = document.getElementById("dropzone");
   const fileInput = document.getElementById("fileInput");
   const uploadStatus = document.getElementById("uploadStatus");
+  const chooseFileBtn = document.getElementById("chooseFileBtn");
 
-  function sheetToRows(workbook){
-    const sheetName = workbook.SheetNames?.[0];
-    if (!sheetName) return [];
-    const ws = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: "" });
+  // Button triggers file picker (works on iOS)
+  chooseFileBtn.addEventListener("click", () => fileInput.click());
+
+  // --- CSV parser fallback (no XLSX needed) ---
+  function parseCSV(text){
+    const rows = [];
+    let row = [], cur = "", inQuotes = false;
+    for (let i=0; i<text.length; i++){
+      const ch = text[i];
+      const next = text[i+1];
+      if (ch === '"'){
+        if (inQuotes && next === '"'){ cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === "," && !inQuotes){
+        row.push(cur); cur = "";
+      } else if ((ch === "\n" || ch === "\r") && !inQuotes){
+        if (ch === "\r" && next === "\n") i++;
+        row.push(cur); rows.push(row);
+        row = []; cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    if (cur.length || row.length){ row.push(cur); rows.push(row); }
     return rows;
   }
 
@@ -741,47 +675,37 @@
       const a = (r?.[0] ?? "").toString().trim();
       const b = (r?.[1] ?? "").toString().trim();
       if (!a && !b) continue;
-      cleaned.push([a, b]);
+      cleaned.push([a,b]);
     }
     return cleaned;
   }
 
   function validateAndMaybeSwap(rowsTwoCols){
-    let good = 0, swapped = 0, ambiguous = 0;
+    let good = 0, swapped = 0;
 
     for (const [a,b] of rowsTwoCols){
       const aIsPC = looksLikePostcode(a);
       const bIsPC = looksLikePostcode(b);
-
       if (bIsPC && !aIsPC) good++;
       else if (aIsPC && !bIsPC) swapped++;
-      else ambiguous++;
     }
 
     if (swapped > 0 && swapped >= good * 1.5){
-      const msg =
+      const ok = window.confirm(
         `Your file looks like the columns may be the wrong way around.\n\n` +
-        `Expected: Column A = Hub Name, Column B = Postcode\n` +
-        `Detected: ${swapped} rows where Column A looks like a postcode, and Column B does not.\n` +
-        `Detected: ${good} rows that match the expected format.\n\n` +
-        `Are you sure you want to continue?\n\n` +
+        `Expected: Column A = Hub Name, Column B = Postcode\n\n` +
         `OK = Continue (we will swap columns A/B)\n` +
-        `Cancel = Stop (you can fix the file and re-upload)`;
-      const ok = window.confirm(msg);
+        `Cancel = Stop`
+      );
       if (!ok) return { ok:false, reason:"Upload cancelled." };
-
-      const swappedRows = rowsTwoCols.map(([a,b]) => [b,a]);
-      return { ok:true, rows: swappedRows, swapped:true };
+      return { ok:true, rows: rowsTwoCols.map(([a,b]) => [b,a]), swapped:true };
     }
 
     if (good === 0 && swapped === 0){
-      return {
-        ok:false,
-        reason:
-          `Upload format not recognised.\n\n` +
-          `Required: two columns, no headers (A = Hub Name, B = Postcode).\n` +
-          `We couldn't confidently identify postcodes in either column.\n\n` +
-          `Tip: check there are no header rows, and that UK postcodes are in column B.`
+      return { ok:false, reason:
+        `Upload format not recognised.\n\n` +
+        `Required: two columns, no headers (A = Hub Name, B = Postcode).\n` +
+        `We couldn't confidently identify postcodes in either column.`
       };
     }
 
@@ -795,18 +719,39 @@
     })).filter(h => h.postcode);
   }
 
+  function sheetToRows(workbook){
+    const sheetName = workbook.SheetNames?.[0];
+    if (!sheetName) return [];
+    const ws = workbook.Sheets[sheetName];
+    return XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: "" });
+  }
+
   async function handleUploadFile(file){
     setError("");
     uploadedHubs = null;
     uploadStatus.textContent = "Loading…";
 
     try{
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
+      const name = (file.name || "").toLowerCase();
+      const isCSV = name.endsWith(".csv") || file.type.includes("csv");
 
-      let rows = sheetToRows(wb);
+      let rows;
+
+      // If it's CSV, parse directly (avoids XLSX dependency entirely)
+      if (isCSV){
+        const text = await file.text();
+        rows = parseCSV(text);
+      } else {
+        // For xlsx/xls/tsv etc. we need XLSX
+        if (typeof XLSX === "undefined"){
+          throw new Error("Spreadsheet library failed to load (XLSX is not defined). Try uploading a CSV, or refresh the page.");
+        }
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        rows = sheetToRows(wb);
+      }
+
       rows = normaliseRowsToTwoCols(rows);
-
       if (!rows.length) throw new Error("No usable rows found. Ensure your data is in the first two columns.");
 
       // Header-ish prompt
@@ -818,8 +763,8 @@
         const ok = window.confirm(
           `Your first row looks like it might be a header.\n\n` +
           `This tool expects NO headers.\n\n` +
-          `OK = Continue anyway (we'll treat the first row as data)\n` +
-          `Cancel = Stop (remove headers and re-upload)`
+          `OK = Continue anyway\n` +
+          `Cancel = Stop`
         );
         if (!ok) throw new Error("Upload cancelled (header row detected).");
       }
@@ -831,10 +776,7 @@
       if (!hubs.length) throw new Error("No valid hub postcodes found in column B.");
 
       uploadedHubs = hubs;
-      const swapNote = verdict.swapped ? " (columns swapped)" : "";
-      uploadStatus.textContent = `Loaded: ${uploadedHubs.length} hubs from "${file.name}"${swapNote}.`;
-
-      // If they've uploaded, it usually makes sense to be on bulk tab
+      uploadStatus.textContent = `Loaded: ${uploadedHubs.length} hubs from "${file.name}"${verdict.swapped ? " (columns swapped)" : ""}.`;
       setMode("bulk");
     } catch (e){
       uploadedHubs = null;
@@ -885,18 +827,13 @@
       if (!centrePc) throw new Error("Enter a central postcode.");
       if (!Number.isFinite(radiusKm) || radiusKm <= 0) throw new Error("Radius must be a positive number (km).");
 
-      // Choose hubs source based on active tab
       let hubs = null;
-
       if (hubMode === "bulk"){
-        if (!uploadedHubs || !uploadedHubs.length){
-          throw new Error("Bulk upload selected — please upload a spreadsheet first.");
-        }
+        if (!uploadedHubs || !uploadedHubs.length) throw new Error("Bulk upload selected — please upload a file first.");
         hubs = uploadedHubs;
       } else {
         hubs = getManualHubs();
-        if (!hubs.length) throw new Error("Manual upload selected — please add at least one hub.");
-        // validate manual postcodes
+        if (!hubs.length) throw new Error("Manual input selected — please add at least one hub.");
         const bad = hubs.find(h => !looksLikePostcode(h.postcode));
         if (bad) throw new Error(`One or more manual postcodes don’t look valid.\nExample: "${bad.postcode || "(blank)"}"`);
       }
@@ -912,7 +849,6 @@
         .bindTooltip(centreName, { permanent:false, direction:"top", offset:[0,-8] })
         .openPopup();
 
-      // Radius glow + thicker ring
       radiusGlow = L.circle(cLatLng, {
         radius: radiusKm * 1000,
         fill: false,
