@@ -38,21 +38,27 @@
       padding: 16px;
       overflow-y:auto;
     }
+
     .brand{
       display:flex;
-      flex-direction: column;   /* <-- this is the key */
-      align-items: flex-start;  /* left-align */
+      flex-direction: column;
+      align-items: flex-start;
       gap: 10px;
       padding: 10px 10px 14px;
       border-bottom: 1px solid var(--muted);
       margin-bottom: 14px;
     }
-    .brand img{ height:auto; max-width:200px; width:auto; display:block; }
-    .brand .title{ display:flex; flex-direction:column; line-height:1.15; }
-    .brand .title strong{ font-size: 18px; letter-spacing:.2px; line-height: 1.25 }
-    .brand .title span{ font-size: 12px; color: rgba(3,19,102,.70); }
+    /* Guardrails so the logo can't explode in size */
+    .brand img{
+      height: 40px;
+      max-width: 220px;
+      width: auto;
+      display:block;
     }
-    
+    .brand .title{ display:flex; flex-direction:column; line-height:1.15; }
+    .brand .title strong{ font-size: 18px; letter-spacing:.2px; line-height: 1.25; }
+    .brand .title span{ font-size: 12px; color: rgba(3,19,102,.70); }
+
     /* Stage sections with progress rail */
     .stage{
       position: relative;
@@ -64,6 +70,7 @@
       margin-bottom: 12px;
       overflow:hidden;
     }
+    /* Default rail (stage 1) */
     .stage::before{
       content:"";
       position:absolute;
@@ -71,6 +78,7 @@
       width: 6px;
       background: var(--teal);
     }
+    /* IMPORTANT: keep these after the default rule so they override */
     .stage.stage2::before{ background: var(--orange); }
     .stage.stage3::before{ background: var(--yellow); }
 
@@ -200,6 +208,50 @@
 
     /* Map */
     #map{ flex: 1; height: 100vh; }
+
+    /* Leaflet legend */
+    .legend{
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(3,19,102,.12);
+      border-radius: 14px;
+      box-shadow: 0 12px 28px rgba(3,19,102,.10);
+      padding: 10px 10px;
+      color: var(--ink);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      font-size: 12px;
+      line-height: 1.35;
+      min-width: 160px;
+    }
+    .legendTitle{
+      font-weight: 900;
+      margin-bottom: 6px;
+      letter-spacing: .2px;
+      font-size: 12px;
+    }
+    .legendRow{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      margin: 6px 0;
+    }
+    .legendDot{
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--ink);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+      flex: 0 0 auto;
+    }
+    .legendRing{
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      border: 2px solid var(--teal);
+      background: transparent;
+      flex: 0 0 auto;
+    }
 
     @media (max-width: 900px){
       .wrap{ flex-direction: column; }
@@ -352,7 +404,9 @@ EC1A 1BB | City Advice Centre"></textarea>
   ).addTo(map);
 
   const layerGroup = L.layerGroup().addTo(map);
-  let radiusCircle;
+  let radiusCircle = null;
+  let radiusGlow = null;
+  let legendControl = null;
 
   function norm(pc) {
     return (pc || "").trim().toUpperCase().replace(/\s+/g, "");
@@ -377,6 +431,8 @@ EC1A 1BB | City Advice Centre"></textarea>
     setError("");
     layerGroup.clearLayers();
     if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+    if (radiusGlow) { map.removeLayer(radiusGlow); radiusGlow = null; }
+    if (legendControl) { map.removeControl(legendControl); legendControl = null; }
     setCounts(0,0,0);
   }
 
@@ -408,7 +464,6 @@ EC1A 1BB | City Advice Centre"></textarea>
     });
     const j = await r.json();
     if (!j.result) throw new Error("Bulk lookup failed");
-    // Keeps only successful results; if failures matter, we can make pairing robust.
     return j.result.filter(x => x.result).map(x => x.result);
   }
 
@@ -520,6 +575,36 @@ EC1A 1BB | City Advice Centre"></textarea>
     if (file) await handleFile(file);
   });
 
+  // --- Legend ---
+  function addLegend(ringColor){
+    if (legendControl) { map.removeControl(legendControl); legendControl = null; }
+
+    legendControl = L.control({ position: "bottomright" });
+    legendControl.onAdd = function(){
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML = `
+        <div class="legendTitle">Legend</div>
+        <div class="legendRow">
+          <span class="legendDot" style="background: var(--ink)"></span>
+          <span>Centre</span>
+        </div>
+        <div class="legendRow">
+          <img src="./gtf-logo.png" alt="" style="width:16px;height:16px;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.15);">
+          <span>Hub</span>
+        </div>
+        <div class="legendRow">
+          <span class="legendRing" style="border-color:${ringColor}"></span>
+          <span>Radius ring</span>
+        </div>
+      `;
+      // Prevent map dragging/zooming when interacting with legend
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      return div;
+    };
+    legendControl.addTo(map);
+  }
+
   // --- Main run ---
   async function run() {
     setError("");
@@ -528,6 +613,7 @@ EC1A 1BB | City Advice Centre"></textarea>
 
     layerGroup.clearLayers();
     if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+    if (radiusGlow) { map.removeLayer(radiusGlow); radiusGlow = null; }
 
     try {
       const centrePc = norm(document.getElementById("centre").value);
@@ -556,18 +642,35 @@ EC1A 1BB | City Advice Centre"></textarea>
 
       const cLatLng = [centre.latitude, centre.longitude];
 
+      // Centre marker (simple default marker, tooltip shows centre name)
       L.marker(cLatLng)
         .addTo(layerGroup)
         .bindPopup(`<strong>${centreName}</strong>`)
         .bindTooltip(centreName, { permanent:false, direction:"top", offset:[0,-8] })
         .openPopup();
 
+      // Radius glow (soft) + ring (crisp)
+      // Glow: wide stroke + low opacity
+      radiusGlow = L.circle(cLatLng, {
+        radius: radiusKm * 1000,
+        fill: false,
+        color: ringColor,
+        opacity: 0.22,
+        weight: 14,
+        interactive: false
+      }).addTo(map);
+
+      // Ring: thicker, crisp
       radiusCircle = L.circle(cLatLng, {
         radius: radiusKm * 1000,
         fill: false,
         color: ringColor,
-        weight: 2
+        opacity: 0.95,
+        weight: 5
       }).addTo(map);
+
+      // Legend
+      addLegend(ringColor);
 
       let inside = 0, outside = 0;
       const bounds = [cLatLng];
