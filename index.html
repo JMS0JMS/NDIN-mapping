@@ -22,14 +22,16 @@
       width: 100%; font-size: 14px; padding: 10px;
       border-radius: 10px; border: 1px solid #ccc; box-sizing: border-box;
     }
-    textarea { min-height: 160px; }
+    textarea { min-height: 140px; }
+    textarea:disabled { background: #f0f0f0; color: #888; }
     button {
       margin-top: 12px; background: #111; color: #fff;
-      font-weight: 600; cursor: pointer; touch-action: manipulation;
+      font-weight: 600; cursor: pointer;
     }
-    #map { flex: 1; }
+    .small { font-size: 12px; color: #666; margin-top: 4px; }
     .stats { font-size: 13px; margin-top: 12px; }
     .error { color: #b00020; font-size: 12px; white-space: pre-wrap; margin-top: 8px; }
+    #map { flex: 1; }
 
     @media (max-width: 900px) {
       .wrap { flex-direction: column; }
@@ -50,10 +52,21 @@
     <label>Centre name (optional)</label>
     <input id="centreName" placeholder="e.g. Birmingham City Centre">
 
-    <label>Hub postcodes (one per line)</label>
-    <textarea id="hubs" autocapitalize="characters" placeholder="Format:
-SW1A 1AA | Westminster Hub
-EC1A 1BB | City Advice Centre"></textarea>
+    <label>Hubs (manual entry)</label>
+    <textarea id="hubs" placeholder="One per line:
+Westminster Hub, SW1A 1AA
+City Advice Centre, EC1A 1BB"></textarea>
+    <div class="small">Format: <strong>Hub name, postcode</strong></div>
+
+    <hr style="margin:12px 0;">
+
+    <label>Or upload hubs CSV</label>
+    <input type="file" id="hubFile" accept=".csv">
+    <div class="small" id="csvStatus">
+      CSV format: <strong>no headers</strong><br>
+      Column A = hub name<br>
+      Column B = postcode
+    </div>
 
     <label>Radius (km)</label>
     <input id="radius" type="number" value="5" step="0.1" min="0.1">
@@ -73,19 +86,12 @@ EC1A 1BB | City Advice Centre"></textarea>
 </div>
 
 <script>
-  // --- Map setup ---
+  // --- Map ---
   const map = L.map("map").setView([51.5074, -0.1278], 11);
-
-  // Minimal basemap (CARTO Positron)
   L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}" + (L.Browser.retina ? "@2x.png" : ".png"),
-    {
-      subdomains: "abcd",
-      maxZoom: 20,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
-        '&copy; <a href="https://carto.com/attributions">CARTO</a>'
-    }
+    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}" +
+      (L.Browser.retina ? "@2x.png" : ".png"),
+    { subdomains: "abcd", maxZoom: 20 }
   ).addTo(map);
 
   const layerGroup = L.layerGroup().addTo(map);
@@ -95,15 +101,12 @@ EC1A 1BB | City Advice Centre"></textarea>
     return (pc || "").trim().toUpperCase().replace(/\s+/g, "");
   }
 
-  // Hub icon (upload gtf-logo.png to the repo alongside index.html)
   const HUB_ICON = L.icon({
     iconUrl: "./gtf-logo.png",
     iconSize: [22, 22],
-    iconAnchor: [11, 11],
-    popupAnchor: [0, -10]
+    iconAnchor: [11, 11]
   });
 
-  // Haversine distance in km
   function distanceKm(aLat, aLon, bLat, bLon) {
     const R = 6371;
     const dLat = (bLat - aLat) * Math.PI / 180;
@@ -130,11 +133,29 @@ EC1A 1BB | City Advice Centre"></textarea>
       body: JSON.stringify({ postcodes: list })
     });
     const j = await r.json();
-    if (!j.result) throw new Error("Bulk lookup failed");
-    // NOTE: This filters failed results out. If you want perfect name↔postcode pairing even with failures,
-    // we can adjust this to keep ordering and show failures in the UI.
     return j.result.filter(x => x.result).map(x => x.result);
   }
+
+  function parseCSV(text) {
+    return text.split(/\r?\n/).filter(Boolean).map((line, i) => {
+      const cols = line.split(",").map(c => c.trim());
+      if (cols.length < 2) throw new Error(`CSV error on line ${i + 1}`);
+      return { name: cols[0], postcode: norm(cols[1]) };
+    });
+  }
+
+  // Disable textarea when CSV chosen
+  document.getElementById("hubFile").addEventListener("change", e => {
+    const ta = document.getElementById("hubs");
+    const status = document.getElementById("csvStatus");
+    if (e.target.files.length) {
+      ta.disabled = true;
+      status.innerHTML = `<strong>Using CSV:</strong> ${e.target.files[0].name}`;
+    } else {
+      ta.disabled = false;
+      status.innerHTML = `CSV format: <strong>no headers</strong><br>Column A = hub name<br>Column B = postcode`;
+    }
+  });
 
   async function run() {
     document.getElementById("err").textContent = "";
@@ -143,70 +164,52 @@ EC1A 1BB | City Advice Centre"></textarea>
 
     try {
       const centrePc = norm(document.getElementById("centre").value);
-      const centreName = document.getElementById("centreName")?.value?.trim() || "Centre";
-
-      const hubLines = document.getElementById("hubs").value
-        .split(/\r?\n/)
-        .map(l => l.trim())
-        .filter(Boolean);
-
-      const hubs = hubLines.map(line => {
-        const parts = line.split("|").map(p => p.trim());
-        const postcode = norm(parts[0] || "");
-        const name = parts[1] || postcode;
-        return { postcode, name };
-      }).filter(h => h.postcode);
-
+      const centreName = document.getElementById("centreName").value.trim() || "Centre";
       const radiusKm = Number(document.getElementById("radius").value);
 
-      if (!centrePc || !hubs.length) throw new Error("Enter centre + at least one hub postcode.");
-      if (!Number.isFinite(radiusKm) || radiusKm <= 0) throw new Error("Radius must be a positive number (km).");
+      let hubs = [];
+
+      const fileInput = document.getElementById("hubFile");
+      if (fileInput.files.length) {
+        hubs = parseCSV(await fileInput.files[0].text());
+      } else {
+        hubs = document.getElementById("hubs").value
+          .split(/\r?\n/)
+          .filter(Boolean)
+          .map((line, i) => {
+            const parts = line.split(",").map(p => p.trim());
+            if (parts.length < 2) throw new Error(`Manual entry error on line ${i + 1}`);
+            return { name: parts[0], postcode: norm(parts[1]) };
+          });
+      }
+
+      if (!centrePc || !hubs.length) throw new Error("Enter a centre and at least one hub.");
 
       const centre = await geocodeSingle(centrePc);
       const hubResults = await geocodeBulk(hubs.map(h => h.postcode));
 
       const cLatLng = [centre.latitude, centre.longitude];
-
       L.marker(cLatLng)
         .addTo(layerGroup)
-        .bindPopup(`<strong>${centreName}</strong>`)
-        .bindTooltip(centreName, {
-          permanent: false, // set true if you want it always visible
-          direction: "top",
-          offset: [0, -8]
-        })
-        .openPopup();
+        .bindTooltip(centreName, { direction: "top", offset: [0, -8] })
+        .bindPopup(`<strong>${centreName}</strong>`);
 
-      // Ring only (no fill)
-      radiusCircle = L.circle(cLatLng, {
-        radius: radiusKm * 1000,
-        fill: false,
-        weight: 2
-      }).addTo(map);
+      radiusCircle = L.circle(cLatLng, { radius: radiusKm * 1000, fill: false }).addTo(map);
 
       let inside = 0, outside = 0;
       const bounds = [cLatLng];
 
       hubResults.forEach((h, i) => {
-        const hubMeta = hubs[i]; // assumes bulk response preserves order for successful items
+        const meta = hubs[i];
         const d = distanceKm(centre.latitude, centre.longitude, h.latitude, h.longitude);
+        if (d <= radiusKm) inside++; else outside++;
+
         const ll = [h.latitude, h.longitude];
         bounds.push(ll);
 
-        if (d <= radiusKm) inside++; else outside++;
-
-        const marker = L.marker(ll, { icon: HUB_ICON }).addTo(layerGroup);
-
-        marker.bindTooltip(hubMeta?.name || hubMeta?.postcode || "Hub", {
-          direction: "top",
-          offset: [0, -6],
-          opacity: 0.95,
-          sticky: true
-        });
-
-        marker.bindPopup(
-          `<strong>${hubMeta?.name || "Hub"}</strong><br>${hubMeta?.postcode || ""}<br>${d.toFixed(2)} km`
-        );
+        const m = L.marker(ll, { icon: HUB_ICON }).addTo(layerGroup);
+        m.bindTooltip(meta.name, { direction: "top", offset: [0, -6], sticky: true });
+        m.bindPopup(`<strong>${meta.name}</strong>`);
       });
 
       map.fitBounds(bounds, { padding: [30, 30] });
@@ -216,7 +219,7 @@ EC1A 1BB | City Advice Centre"></textarea>
       document.getElementById("totalCount").textContent = hubResults.length;
 
     } catch (e) {
-      document.getElementById("err").textContent = e.message || String(e);
+      document.getElementById("err").textContent = e.message;
     }
   }
 </script>
