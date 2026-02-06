@@ -488,4 +488,463 @@
 
   // Minimal basemap (CARTO Positron)
   L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}" + (L.Browser.retina ?_
+    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}" + (L.Browser.retina ? "@2x.png" : ".png"),
+    {
+      subdomains: "abcd",
+      maxZoom: 20,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+        '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }
+  ).addTo(map);
+
+  const layerGroup = L.layerGroup().addTo(map);
+  let radiusCircle = null;
+  let radiusGlow = null;
+  let legendControl = null;
+
+  // Uploaded hubs live here once loaded successfully
+  let uploadedHubs = null;
+
+  // Which tab is active
+  let hubMode = "bulk"; // "bulk" | "manual"
+
+  function setError(msg){ document.getElementById("err").textContent = msg || ""; }
+  function setCounts(i,o,t){
+    document.getElementById("inCount").textContent = i;
+    document.getElementById("outCount").textContent = o;
+    document.getElementById("totalCount").textContent = t;
+  }
+
+  function clearAll(){
+    setError("");
+    layerGroup.clearLayers();
+    if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+    if (radiusGlow) { map.removeLayer(radiusGlow); radiusGlow = null; }
+    if (legendControl) { map.removeControl(legendControl); legendControl = null; }
+    setCounts(0,0,0);
+    uploadedHubs = null;
+    document.getElementById("uploadStatus").textContent = "No file loaded yet.";
+    // clear manual inputs
+    for (const el of document.querySelectorAll("#manualGrid input")) el.value = "";
+  }
+
+  function norm(pc) {
+    return (pc || "").trim().toUpperCase().replace(/\s+/g, "");
+  }
+
+  // Basic UK postcode heuristic
+  const POSTCODE_RE = /^([A-Z]{1,2}\d[A-Z\d]?)(\d[A-Z]{2})$/;
+  function looksLikePostcode(s){
+    const n = norm(s);
+    if (!n) return false;
+    return POSTCODE_RE.test(n);
+  }
+
+  // Hub icon
+  const HUB_ICON = L.icon({
+    iconUrl: "./gtf-logo.png",
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -10]
+  });
+
+  // Haversine distance in km
+  function distanceKm(aLat, aLon, bLat, bLon) {
+    const R = 6371;
+    const dLat = (bLat - aLat) * Math.PI / 180;
+    const dLon = (bLon - aLon) * Math.PI / 180;
+    const lat1 = aLat * Math.PI / 180;
+    const lat2 = bLat * Math.PI / 180;
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+
+  async function geocodeSingle(pc) {
+    const r = await fetch("https://api.postcodes.io/postcodes/" + encodeURIComponent(pc));
+    const j = await r.json();
+    if (!j.result) throw new Error("Invalid centre postcode");
+    return j.result;
+  }
+
+  async function geocodeBulk(list) {
+    const r = await fetch("https://api.postcodes.io/postcodes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ postcodes: list })
+    });
+    const j = await r.json();
+    if (!j.result) throw new Error("Bulk lookup failed");
+    return j.result.filter(x => x.result).map(x => x.result);
+  }
+
+  // --- Ring colour preset logic ---
+  const ringPreset = document.getElementById("ringPreset");
+  const customColorWrap = document.getElementById("customColorWrap");
+  const ringColorInput = document.getElementById("ringColor");
+
+  function getRingColor(){
+    const preset = ringPreset.value;
+    if (preset === "custom") return ringColorInput.value || "#00a39e";
+    return preset || "#00a39e";
+  }
+
+  ringPreset.addEventListener("change", () => {
+    const isCustom = ringPreset.value === "custom";
+    customColorWrap.style.display = isCustom ? "block" : "none";
+    if (!isCustom) ringColorInput.value = ringPreset.value;
+  });
+
+  // --- Legend ---
+  function addLegend(ringColor){
+    if (legendControl) { map.removeControl(legendControl); legendControl = null; }
+
+    legendControl = L.control({ position: "bottomright" });
+    legendControl.onAdd = function(){
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML = `
+        <div class="legendTitle">Legend</div>
+        <div class="legendRow">
+          <span class="legendDot" style="background: var(--ink)"></span>
+          <span>Centre</span>
+        </div>
+        <div class="legendRow">
+          <img src="./gtf-logo.png" alt="" style="width:16px;height:16px;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.15);">
+          <span>Hub</span>
+        </div>
+        <div class="legendRow">
+          <span class="legendRing" style="border-color:${ringColor}"></span>
+          <span>Radius ring</span>
+        </div>
+      `;
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      return div;
+    };
+    legendControl.addTo(map);
+  }
+
+  // --- Tabs logic ---
+  const tabBulk = document.getElementById("tabBulk");
+  const tabManual = document.getElementById("tabManual");
+  const panelBulk = document.getElementById("panelBulk");
+  const panelManual = document.getElementById("panelManual");
+
+  function setMode(mode){
+    hubMode = mode;
+    if (mode === "bulk"){
+      tabBulk.classList.add("active");
+      tabManual.classList.remove("active");
+      tabBulk.setAttribute("aria-selected", "true");
+      tabManual.setAttribute("aria-selected", "false");
+      panelBulk.style.display = "block";
+      panelManual.style.display = "none";
+    } else {
+      tabManual.classList.add("active");
+      tabBulk.classList.remove("active");
+      tabManual.setAttribute("aria-selected", "true");
+      tabBulk.setAttribute("aria-selected", "false");
+      panelManual.style.display = "block";
+      panelBulk.style.display = "none";
+    }
+  }
+
+  tabBulk.addEventListener("click", () => setMode("bulk"));
+  tabManual.addEventListener("click", () => setMode("manual"));
+
+  // --- Manual entry (dynamic rows) ---
+  const manualGrid = document.getElementById("manualGrid");
+  const addRowBtn = document.getElementById("addRowBtn");
+  let manualRows = 10;
+
+  function addManualRow(){
+    const name = document.createElement("input");
+    name.placeholder = `Hub name`;
+    name.setAttribute("data-col", "name");
+
+    const pc = document.createElement("input");
+    pc.placeholder = `Postcode`;
+    pc.autocapitalize = "characters";
+    pc.setAttribute("data-col", "postcode");
+
+    manualGrid.appendChild(name);
+    manualGrid.appendChild(pc);
+
+    manualRows += 1;
+    refreshManualRowBorders();
+  }
+
+  function refreshManualRowBorders(){
+    // Remove "endRow" from all
+    const inputs = Array.from(manualGrid.querySelectorAll("input"));
+    inputs.forEach(i => i.classList.remove("endRow"));
+    // Add "endRow" to last two inputs (name+postcode)
+    if (inputs.length >= 2){
+      inputs[inputs.length - 1].classList.add("endRow");
+      inputs[inputs.length - 2].classList.add("endRow");
+    }
+  }
+
+  function buildManualGrid(initialRows = 10){
+    manualGrid.innerHTML = "";
+    manualRows = 0;
+    for (let i=0; i<initialRows; i++) addManualRow();
+  }
+  buildManualGrid(10);
+
+  addRowBtn.addEventListener("click", () => addManualRow());
+
+  function getManualHubs(){
+    const inputs = Array.from(manualGrid.querySelectorAll("input"));
+    const hubs = [];
+    for (let i = 0; i < inputs.length; i += 2){
+      const name = (inputs[i].value || "").trim();
+      const postcodeRaw = (inputs[i+1].value || "").trim();
+      const postcode = norm(postcodeRaw);
+      if (!name && !postcode) continue;
+      hubs.push({ name: name || "Hub", postcode });
+    }
+    return hubs;
+  }
+
+  // --- Upload parsing (XLSX/XLS/CSV/TSV/TXT) ---
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("fileInput");
+  const uploadStatus = document.getElementById("uploadStatus");
+
+  function sheetToRows(workbook){
+    const sheetName = workbook.SheetNames?.[0];
+    if (!sheetName) return [];
+    const ws = workbook.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: "" });
+    return rows;
+  }
+
+  function normaliseRowsToTwoCols(rows){
+    const cleaned = [];
+    for (const r of rows){
+      const a = (r?.[0] ?? "").toString().trim();
+      const b = (r?.[1] ?? "").toString().trim();
+      if (!a && !b) continue;
+      cleaned.push([a, b]);
+    }
+    return cleaned;
+  }
+
+  function validateAndMaybeSwap(rowsTwoCols){
+    let good = 0, swapped = 0, ambiguous = 0;
+
+    for (const [a,b] of rowsTwoCols){
+      const aIsPC = looksLikePostcode(a);
+      const bIsPC = looksLikePostcode(b);
+
+      if (bIsPC && !aIsPC) good++;
+      else if (aIsPC && !bIsPC) swapped++;
+      else ambiguous++;
+    }
+
+    if (swapped > 0 && swapped >= good * 1.5){
+      const msg =
+        `Your file looks like the columns may be the wrong way around.\n\n` +
+        `Expected: Column A = Hub Name, Column B = Postcode\n` +
+        `Detected: ${swapped} rows where Column A looks like a postcode, and Column B does not.\n` +
+        `Detected: ${good} rows that match the expected format.\n\n` +
+        `Are you sure you want to continue?\n\n` +
+        `OK = Continue (we will swap columns A/B)\n` +
+        `Cancel = Stop (you can fix the file and re-upload)`;
+      const ok = window.confirm(msg);
+      if (!ok) return { ok:false, reason:"Upload cancelled." };
+
+      const swappedRows = rowsTwoCols.map(([a,b]) => [b,a]);
+      return { ok:true, rows: swappedRows, swapped:true };
+    }
+
+    if (good === 0 && swapped === 0){
+      return {
+        ok:false,
+        reason:
+          `Upload format not recognised.\n\n` +
+          `Required: two columns, no headers (A = Hub Name, B = Postcode).\n` +
+          `We couldn't confidently identify postcodes in either column.\n\n` +
+          `Tip: check there are no header rows, and that UK postcodes are in column B.`
+      };
+    }
+
+    return { ok:true, rows: rowsTwoCols, swapped:false };
+  }
+
+  function rowsToHubs(rowsTwoCols){
+    return rowsTwoCols.map(([a,b]) => ({
+      name: (a || "").toString().trim() || "Hub",
+      postcode: norm(b || "")
+    })).filter(h => h.postcode);
+  }
+
+  async function handleUploadFile(file){
+    setError("");
+    uploadedHubs = null;
+    uploadStatus.textContent = "Loading…";
+
+    try{
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+
+      let rows = sheetToRows(wb);
+      rows = normaliseRowsToTwoCols(rows);
+
+      if (!rows.length) throw new Error("No usable rows found. Ensure your data is in the first two columns.");
+
+      // Header-ish prompt
+      const firstA = (rows[0][0] || "").toString().toLowerCase();
+      const firstB = (rows[0][1] || "").toString().toLowerCase();
+      const headerish = (firstA.includes("hub") || firstA.includes("name") || firstA.includes("organisation")) &&
+                        (firstB.includes("post") || firstB.includes("zip") || firstB.includes("code"));
+      if (headerish){
+        const ok = window.confirm(
+          `Your first row looks like it might be a header.\n\n` +
+          `This tool expects NO headers.\n\n` +
+          `OK = Continue anyway (we'll treat the first row as data)\n` +
+          `Cancel = Stop (remove headers and re-upload)`
+        );
+        if (!ok) throw new Error("Upload cancelled (header row detected).");
+      }
+
+      const verdict = validateAndMaybeSwap(rows);
+      if (!verdict.ok) throw new Error(verdict.reason);
+
+      const hubs = rowsToHubs(verdict.rows);
+      if (!hubs.length) throw new Error("No valid hub postcodes found in column B.");
+
+      uploadedHubs = hubs;
+      const swapNote = verdict.swapped ? " (columns swapped)" : "";
+      uploadStatus.textContent = `Loaded: ${uploadedHubs.length} hubs from "${file.name}"${swapNote}.`;
+
+      // If they've uploaded, it usually makes sense to be on bulk tab
+      setMode("bulk");
+    } catch (e){
+      uploadedHubs = null;
+      uploadStatus.textContent = "No file loaded yet.";
+      setError(e?.message || String(e));
+    }
+  }
+
+  fileInput.addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if (f) await handleUploadFile(f);
+    fileInput.value = "";
+  });
+
+  ["dragenter","dragover"].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add("dragover");
+    });
+  });
+  ["dragleave","drop"].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove("dragover");
+    });
+  });
+  dropzone.addEventListener("drop", async (e) => {
+    const file = e.dataTransfer?.files?.[0];
+    if (file) await handleUploadFile(file);
+  });
+
+  // --- Main run ---
+  async function run() {
+    setError("");
+    const runBtn = document.getElementById("runBtn");
+    runBtn.disabled = true;
+
+    layerGroup.clearLayers();
+    if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+    if (radiusGlow) { map.removeLayer(radiusGlow); radiusGlow = null; }
+
+    try {
+      const centrePc = norm(document.getElementById("centre").value);
+      const centreName = (document.getElementById("centreName")?.value || "").trim() || "Centre";
+      const radiusKm = Number(document.getElementById("radius").value);
+      const ringColor = getRingColor();
+
+      if (!centrePc) throw new Error("Enter a central postcode.");
+      if (!Number.isFinite(radiusKm) || radiusKm <= 0) throw new Error("Radius must be a positive number (km).");
+
+      // Choose hubs source based on active tab
+      let hubs = null;
+
+      if (hubMode === "bulk"){
+        if (!uploadedHubs || !uploadedHubs.length){
+          throw new Error("Bulk upload selected — please upload a spreadsheet first.");
+        }
+        hubs = uploadedHubs;
+      } else {
+        hubs = getManualHubs();
+        if (!hubs.length) throw new Error("Manual upload selected — please add at least one hub.");
+        // validate manual postcodes
+        const bad = hubs.find(h => !looksLikePostcode(h.postcode));
+        if (bad) throw new Error(`One or more manual postcodes don’t look valid.\nExample: "${bad.postcode || "(blank)"}"`);
+      }
+
+      const centre = await geocodeSingle(centrePc);
+      const hubResults = await geocodeBulk(hubs.map(h => h.postcode));
+
+      const cLatLng = [centre.latitude, centre.longitude];
+
+      L.marker(cLatLng)
+        .addTo(layerGroup)
+        .bindPopup(`<strong>${centreName}</strong>`)
+        .bindTooltip(centreName, { permanent:false, direction:"top", offset:[0,-8] })
+        .openPopup();
+
+      // Radius glow + thicker ring
+      radiusGlow = L.circle(cLatLng, {
+        radius: radiusKm * 1000,
+        fill: false,
+        color: ringColor,
+        opacity: 0.22,
+        weight: 14,
+        interactive: false
+      }).addTo(map);
+
+      radiusCircle = L.circle(cLatLng, {
+        radius: radiusKm * 1000,
+        fill: false,
+        color: ringColor,
+        opacity: 0.95,
+        weight: 6
+      }).addTo(map);
+
+      addLegend(ringColor);
+
+      let inside = 0, outside = 0;
+      const bounds = [cLatLng];
+
+      hubResults.forEach((h, i) => {
+        const hubMeta = hubs[i];
+        const d = distanceKm(centre.latitude, centre.longitude, h.latitude, h.longitude);
+        const ll = [h.latitude, h.longitude];
+        bounds.push(ll);
+
+        if (d <= radiusKm) inside++; else outside++;
+
+        const marker = L.marker(ll, { icon: HUB_ICON }).addTo(layerGroup);
+        marker.bindTooltip(hubMeta?.name || "Hub", { direction:"top", offset:[0,-6], opacity:0.95, sticky:true });
+        marker.bindPopup(`<strong>${hubMeta?.name || "Hub"}</strong>`);
+      });
+
+      map.fitBounds(bounds, { padding: [30, 30] });
+      setCounts(inside, outside, hubResults.length);
+
+    } catch (e) {
+      setError(e?.message || String(e));
+      setCounts(0,0,0);
+    } finally {
+      runBtn.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
