@@ -165,7 +165,15 @@
       const hubResults = await geocodeBulk(hubs.map(h => h.postcode));
 
       const cLatLng = [centre.latitude, centre.longitude];
-      L.marker(cLatLng).addTo(layerGroup).bindPopup("Centre").openPopup();
+      L.marker(cLatLng)
+        .addTo(layerGroup)
+        .bindPopup(`<strong>${centreName}</strong><br>${centre.postcode}`)
+        .bindTooltip(centreName, {
+          permanent: false,   // set true if you want it always visible
+          direction: "top",
+          offset: [0, -8]
+        })
+        .openPopup();
 
       radiusCircle = L.circle(cLatLng, {radius: radiusKm*1000, fill: false}).addTo(map);
 
