@@ -22,9 +22,15 @@
       --yellow: #f7bf29;
       --magenta: #f529a6;
       --danger: #cf1c45;
-      --radius: 14px;
+
+      --radius: 16px;
       --shadow: 0 10px 24px rgba(3,19,102,.08);
       --shadow2: 0 12px 28px rgba(3,19,102,.10);
+
+      /* Accessibility/typography */
+      --base: 15px;                 /* slightly larger default */
+      --lh: 1.55;                   /* more readable line-height */
+      --focus: 0 0 0 4px rgba(0,163,158,.18);
     }
     *{ box-sizing:border-box; }
     body{
@@ -32,18 +38,71 @@
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       color: var(--ink);
       background: #f7f8ff;
+      font-size: var(--base);
+      line-height: var(--lh);
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
-    .wrap{ display:flex; height:100vh; width:100%; }
 
-    /* Sidebar */
-    .sidebar{
+    .wrap{ display:flex; height:100vh; width:100%; overflow:hidden; }
+
+    /* Sidebar shell (retractable) */
+    .sidebarShell{
       width: 410px;
+      min-width: 320px;
+      max-width: 520px;
       background: var(--bg);
       border-right: 1px solid var(--muted);
+      position: relative;
+      display:flex;
+      flex-direction:column;
+      transition: width .18s ease;
+    }
+    .sidebarShell.collapsed{
+      width: 56px;
+      min-width: 56px;
+      max-width: 56px;
+    }
+    .sidebar{
       padding: 16px;
       overflow-y:auto;
+      height:100%;
+    }
+    .sidebarShell.collapsed .sidebar{
+      padding: 12px 8px;
+      overflow: hidden;
+    }
+    .sidebarShell.collapsed .collapseHide{
+      display:none !important;
     }
 
+    /* Collapse button */
+    .collapseBtn{
+      position:absolute;
+      top: 12px;
+      right: -14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid rgba(3,19,102,.14);
+      background: #fff;
+      box-shadow: 0 10px 18px rgba(3,19,102,.10);
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 1000;
+      color: rgba(3,19,102,.75);
+      user-select:none;
+      z-index: 5;
+    }
+    .collapseBtn:focus-visible{
+      outline: none;
+      box-shadow: var(--shadow2), var(--focus);
+    }
+
+    /* Brand */
     .brand{
       display:flex;
       flex-direction: column;
@@ -59,11 +118,12 @@
       width: auto;
       display:block;
     }
-    .brand .title{ display:flex; flex-direction:column; line-height:1.15; }
+    .brand .title{ display:flex; flex-direction:column; line-height:1.2; }
     .brand .title strong{ font-size: 18px; letter-spacing:.2px; line-height: 1.25; }
-    .brand .title span{ font-size: 12px; color: rgba(3,19,102,.70); }
+    .brand .title span{ font-size: 13px; color: rgba(3,19,102,.75); }
 
-    .stage{
+    /* Steps */
+    .step{
       position: relative;
       background: #fff;
       border: 1px solid var(--muted);
@@ -73,32 +133,38 @@
       margin-bottom: 12px;
       overflow:hidden;
     }
-    .stage::before{
+    .step::before{
       content:"";
       position:absolute;
       left:0; top:0; bottom:0;
       width: 6px;
       background: var(--teal);
     }
-    .stage.stage2::before{ background: var(--orange); }
-    .stage.stage3::before{ background: var(--yellow); }
+    .step.step2::before{ background: var(--orange); }
+    .step.step3::before{ background: var(--yellow); }
 
     .sectionHeader{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom: 10px; }
-    h2{ font-size: 13px; margin:0; letter-spacing:.2px; }
+    h2{
+      font-size: 14px;
+      margin:0;
+      letter-spacing:.2px;
+      line-height: 1.25;
+    }
     .badge{
-      font-size: 11px; font-weight: 900;
+      font-size: 12px;
+      font-weight: 1000;
       color: var(--ink);
       background: rgba(3,19,102,.06);
       border: 1px solid rgba(3,19,102,.10);
-      padding: 3px 8px;
+      padding: 4px 10px;
       border-radius: 999px;
       white-space:nowrap;
     }
     .statusPill{
-      font-size: 11px;
-      font-weight: 900;
+      font-size: 12px;
+      font-weight: 1000;
       border-radius: 999px;
-      padding: 3px 8px;
+      padding: 4px 10px;
       border: 1px solid rgba(3,19,102,.12);
       background: rgba(3,19,102,.04);
       color: rgba(3,19,102,.85);
@@ -121,67 +187,76 @@
     }
 
     .hint{
+      font-size: 13px;
+      color: rgba(3,19,102,.78);
+      margin-top: 8px;
+      line-height: 1.45;
+    }
+    .microHint{
       font-size: 12px;
       color: rgba(3,19,102,.72);
-      margin-top: 6px;
-      line-height: 1.35;
+      margin-top: 8px;
+      line-height: 1.45;
     }
 
     label{
-      font-size: 12px;
-      font-weight: 800;
+      font-size: 13px;
+      font-weight: 900;
       display:block;
-      margin: 10px 0 6px;
+      margin: 12px 0 6px;
+      line-height: 1.25;
     }
     input, textarea, select, button{ font-family: inherit; }
     input, textarea, select{
       width:100%;
       border: 1px solid var(--muted);
       border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 14px;
+      padding: 11px 12px;
+      font-size: 15px;
       outline: none;
       background: #fff;
       color: var(--ink);
     }
     input:focus, textarea:focus, select:focus{
       border-color: rgba(0,163,158,.55);
-      box-shadow: 0 0 0 4px rgba(0,163,158,.12);
+      box-shadow: var(--focus);
     }
     input.invalid{
       border-color: rgba(207,28,69,.55);
-      box-shadow: 0 0 0 4px rgba(207,28,69,.10);
+      box-shadow: 0 0 0 4px rgba(207,28,69,.12);
     }
 
     .row{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items:end; }
 
-    .actions{ display:flex; gap:10px; margin-top: 12px; }
+    .actions{ display:flex; gap:10px; margin-top: 12px; flex-wrap:wrap; }
     .btn{
       border: 1px solid rgba(3,19,102,.16);
       border-radius: 12px;
-      padding: 10px 12px;
-      font-weight: 900;
+      padding: 11px 12px;
+      font-weight: 1000;
       cursor:pointer;
       touch-action: manipulation;
       transition: transform .02s ease, box-shadow .15s ease, opacity .15s ease;
       user-select:none;
       background:#fff;
       color: var(--ink);
+      font-size: 14px;
     }
     .btnPrimary{
       background: var(--ink);
       color:#fff;
       border-color: var(--ink);
       flex: 1;
+      min-width: 160px;
       box-shadow: 0 10px 18px rgba(3,19,102,.18);
     }
     .btnPrimary:active{ transform: translateY(1px); }
-    .btnGhost{ background:#fff; color: var(--ink); }
+    .btn:focus-visible{ outline:none; box-shadow: var(--shadow2), var(--focus); }
     .btnSmall{
-      padding: 8px 10px;
+      padding: 9px 10px;
       border-radius: 10px;
-      font-size: 12px;
-      font-weight: 900;
+      font-size: 13px;
+      font-weight: 1000;
     }
     .btn:disabled{ opacity:.5; cursor:not-allowed; }
 
@@ -198,13 +273,13 @@
     .tab{
       flex:1;
       text-align:center;
-      padding: 8px 10px;
+      padding: 9px 10px;
       border-radius: 12px;
       border: 1px solid transparent;
       background: transparent;
-      font-weight: 900;
-      font-size: 12px;
-      color: rgba(3,19,102,.80);
+      font-weight: 1000;
+      font-size: 13px;
+      color: rgba(3,19,102,.85);
       cursor:pointer;
     }
     .tab.active{
@@ -213,6 +288,7 @@
       color: var(--ink);
       box-shadow: 0 8px 18px rgba(3,19,102,.08);
     }
+    .tab:focus-visible{ outline:none; box-shadow: var(--shadow2), var(--focus); }
 
     /* Upload */
     .dropzone{
@@ -231,22 +307,23 @@
       box-shadow: 0 0 0 4px rgba(0,163,158,.12) inset;
     }
     .dzTop{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-    .dzTop strong{ font-size: 13px; }
-    .dzTop .small{ font-size: 12px; color: rgba(3,19,102,.70); }
+    .dzTop strong{ font-size: 14px; font-weight: 1000; }
+    .dzTop .small{ font-size: 13px; color: rgba(3,19,102,.75); }
     .fileBtn{
       display:inline-block;
-      padding: 8px 10px;
+      padding: 9px 10px;
       border-radius: 10px;
       background: #fff;
       border: 1px solid rgba(3,19,102,.16);
-      font-weight: 900;
+      font-weight: 1000;
       cursor:pointer;
       white-space:nowrap;
+      font-size: 13px;
     }
     .uploadStatus{
-      font-size: 12px;
-      font-weight: 900;
-      color: rgba(3,19,102,.80);
+      font-size: 13px;
+      font-weight: 1000;
+      color: rgba(3,19,102,.85);
     }
     .fileInput{
       position: absolute;
@@ -256,7 +333,7 @@
       opacity: 0.01;
     }
 
-    /* Preview / Validation */
+    /* Panels */
     .panel{
       margin-top: 10px;
       border: 1px solid var(--muted);
@@ -274,32 +351,33 @@
       background: rgba(3,19,102,.04);
       border-bottom: 1px solid var(--muted);
     }
-    .panelTop strong{ font-size: 12px; font-weight: 900; }
+    .panelTop strong{ font-size: 13px; font-weight: 1000; }
     .panelBody{ padding: 10px 12px; }
     .kv{
       display:grid;
       grid-template-columns: 1fr auto;
-      gap: 8px 10px;
-      font-size: 12px;
-      color: rgba(3,19,102,.78);
+      gap: 10px 12px;
+      font-size: 13px;
+      color: rgba(3,19,102,.82);
       line-height: 1.3;
     }
-    .kv b{ color: rgba(3,19,102,.95); }
+    .kv b{ color: rgba(3,19,102,.98); font-weight: 1000; }
     .previewTable{
       width:100%;
       border-collapse: collapse;
       margin-top: 10px;
-      font-size: 12px;
+      font-size: 13px;
     }
     .previewTable th, .previewTable td{
-      padding: 8px 8px;
+      padding: 9px 8px;
       border-top: 1px solid var(--muted);
       text-align:left;
       vertical-align: top;
+      line-height: 1.35;
     }
     .previewTable th{
-      color: rgba(3,19,102,.70);
-      font-weight: 900;
+      color: rgba(3,19,102,.75);
+      font-weight: 1000;
       background: rgba(3,19,102,.02);
     }
     .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
@@ -311,25 +389,25 @@
     }
     details.errList summary{
       cursor:pointer;
-      font-weight: 900;
-      font-size: 12px;
-      color: rgba(3,19,102,.88);
+      font-weight: 1000;
+      font-size: 13px;
+      color: rgba(3,19,102,.92);
     }
     .errItems{
       margin-top: 8px;
-      font-size: 12px;
-      color: rgba(3,19,102,.78);
-      line-height: 1.35;
-      max-height: 160px;
+      font-size: 13px;
+      color: rgba(3,19,102,.80);
+      line-height: 1.45;
+      max-height: 180px;
       overflow:auto;
       border: 1px solid var(--muted);
       border-radius: 12px;
-      padding: 8px;
+      padding: 10px;
       background: rgba(3,19,102,.02);
     }
-    .errItems .bad{ color: var(--danger); font-weight: 900; }
+    .errItems .bad{ color: var(--danger); font-weight: 1000; }
 
-    /* Manual entry table */
+    /* Manual */
     .manualWrap{
       margin-top: 10px;
       border: 1px solid var(--muted);
@@ -344,8 +422,8 @@
       padding: 10px 12px;
       background: rgba(3,19,102,.04);
       border-bottom: 1px solid var(--muted);
-      font-size: 12px;
-      font-weight: 900;
+      font-size: 13px;
+      font-weight: 1000;
       color: rgba(3,19,102,.78);
     }
     .manualGridRow{
@@ -355,23 +433,16 @@
       align-items:center;
     }
     .manualGridRow:last-child{ border-bottom:0; }
-    .cell{
-      padding: 8px 10px;
-      font-size: 12px;
-      color: rgba(3,19,102,.80);
-    }
-    .cellNum{ text-align:center; font-weight: 900; color: rgba(3,19,102,.55); }
+    .cell{ padding: 8px 10px; font-size: 13px; color: rgba(3,19,102,.84); }
+    .cellNum{ text-align:center; font-weight: 1000; color: rgba(3,19,102,.55); }
     .cell input{
       width:100%;
       border: 1px solid rgba(3,19,102,.10);
       border-radius: 12px;
-      padding: 9px 10px;
-      font-size: 13px;
+      padding: 10px 10px;
+      font-size: 14px;
     }
-    .cellBtn{
-      display:flex;
-      justify-content:center;
-    }
+    .cellBtn{ display:flex; justify-content:center; }
     .iconBtn{
       width: 34px;
       height: 34px;
@@ -379,58 +450,12 @@
       border: 1px solid rgba(3,19,102,.14);
       background: #fff;
       cursor:pointer;
-      font-weight: 900;
+      font-weight: 1000;
       color: rgba(3,19,102,.70);
     }
-    .iconBtn:hover{ box-shadow: 0 8px 16px rgba(3,19,102,.10); }
+    .iconBtn:focus-visible{ outline:none; box-shadow: var(--shadow2), var(--focus); }
 
-    /* Map */
-    #map{ flex: 1; height: 100vh; }
-
-    /* Leaflet legend */
-    .legend{
-      background: rgba(255,255,255,.92);
-      border: 1px solid rgba(3,19,102,.12);
-      border-radius: 14px;
-      box-shadow: var(--shadow2);
-      padding: 10px 10px;
-      color: var(--ink);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      font-size: 12px;
-      line-height: 1.35;
-      min-width: 180px;
-    }
-    .legendTitle{
-      font-weight: 900;
-      margin-bottom: 6px;
-      letter-spacing: .2px;
-      font-size: 12px;
-    }
-    .legendRow{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin: 6px 0;
-    }
-    .legendDot{
-      width: 12px;
-      height: 12px;
-      border-radius: 999px;
-      background: var(--ink);
-      border: 2px solid #fff;
-      box-shadow: 0 2px 6px rgba(0,0,0,.18);
-      flex: 0 0 auto;
-    }
-    .legendRing{
-      width: 12px;
-      height: 12px;
-      border-radius: 999px;
-      border: 2px solid var(--teal);
-      background: transparent;
-      flex: 0 0 auto;
-    }
-
+    /* Stats + errors */
     .stats{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -444,20 +469,71 @@
       background: #fff;
       box-shadow: var(--shadow);
     }
-    .stat .k{ font-size: 11px; color: rgba(3,19,102,.70); font-weight: 900; }
-    .stat .v{ font-size: 16px; font-weight: 1000; margin-top: 4px; }
+    .stat .k{ font-size: 12px; color: rgba(3,19,102,.75); font-weight: 1000; }
+    .stat .v{ font-size: 18px; font-weight: 1100; margin-top: 4px; }
 
     .error{
       margin-top: 10px;
-      font-size: 12px;
+      font-size: 13px;
       color: var(--danger);
       white-space: pre-wrap;
-      font-weight: 800;
+      font-weight: 900;
+      line-height: 1.45;
+    }
+
+    /* Map */
+    #map{ flex: 1; height: 100vh; }
+
+    /* Legend */
+    .legend{
+      background: rgba(255,255,255,.92);
+      border: 1px solid rgba(3,19,102,.12);
+      border-radius: 14px;
+      box-shadow: var(--shadow2);
+      padding: 10px 10px;
+      color: var(--ink);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      font-size: 13px;
+      line-height: 1.45;
+      min-width: 190px;
+    }
+    .legendTitle{
+      font-weight: 1100;
+      margin-bottom: 6px;
+      letter-spacing: .2px;
+      font-size: 13px;
+    }
+    .legendRow{ display:flex; align-items:center; gap:8px; margin: 6px 0; }
+    .legendDot{
+      width: 12px; height: 12px; border-radius: 999px;
+      background: var(--ink);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+      flex: 0 0 auto;
+    }
+    .legendRing{
+      width: 12px; height: 12px; border-radius: 999px;
+      border: 2px solid var(--teal);
+      background: transparent;
+      flex: 0 0 auto;
+    }
+    .legendNote{
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(3,19,102,.12);
+      color: rgba(3,19,102,.78);
+      font-size: 12px;
+      line-height: 1.4;
     }
 
     @media (max-width: 900px){
       .wrap{ flex-direction: column; }
-      .sidebar{ width: 100%; border-right:none; border-bottom: 1px solid var(--muted); }
+      .sidebarShell{ width: 100%; max-width: none; border-right:none; border-bottom: 1px solid var(--muted); }
+      .sidebarShell.collapsed{ width: 100%; min-width: 100%; max-width: 100%; }
+      .sidebarShell.collapsed .sidebar{ padding: 12px; overflow:auto; }
+      .sidebarShell.collapsed .collapseHide{ display:block !important; } /* don't hide on mobile */
+      .collapseBtn{ right: 12px; top: 12px; }
       #map{ height: 60vh; }
       .manualHead, .manualGridRow{ grid-template-columns: 36px 1fr 120px 40px; }
     }
@@ -466,204 +542,213 @@
 
 <body>
 <div class="wrap">
-  <aside class="sidebar">
-    <div class="brand">
-      <img src="./gtf-logo-full.png" alt="Good Things Foundation logo">
-      <div class="title">
-        <strong>National Digital Inclusion Network Mapping</strong>
-        <span>Postcode-based hub visualiser</span>
-      </div>
-    </div>
+  <aside id="sidebarShell" class="sidebarShell">
+    <button id="collapseBtn" class="collapseBtn" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">⟨</button>
 
-    <!-- Stage 1 -->
-    <section class="stage stage1">
-      <div class="sectionHeader">
-        <h2>Stage 1 — Central location</h2>
-        <span class="badge">1</span>
-      </div>
-
-      <label for="centre">Central postcode</label>
-      <input id="centre" placeholder="e.g. E1 6AN" autocapitalize="characters">
-
-      <label for="centreName">Centre name (optional)</label>
-      <input id="centreName" placeholder="e.g. Birmingham City Centre">
-
-      <div class="hint">We’ll use this as the anchor point for the radius ring and distance calculations.</div>
-    </section>
-
-    <!-- Stage 2 -->
-    <section class="stage stage2">
-      <div class="sectionHeader">
-        <h2>Stage 2 — Hubs to map</h2>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <span id="dataStatus" class="statusPill warn">No hubs loaded</span>
-          <span class="badge">2</span>
+    <div class="sidebar">
+      <div class="brand collapseHide">
+        <img src="./gtf-logo-full.png" alt="Good Things Foundation logo">
+        <div class="title">
+          <strong>National Digital Inclusion Network Mapping</strong>
+          <span>Postcode-based hub visualiser</span>
         </div>
       </div>
 
-      <div class="tabs" role="tablist" aria-label="Hub input method">
-        <button id="tabBulk" class="tab active" type="button" role="tab" aria-selected="true">Bulk Upload</button>
-        <button id="tabManual" class="tab" type="button" role="tab" aria-selected="false">Manual Input</button>
-      </div>
-
-      <!-- Bulk panel -->
-      <div id="panelBulk">
-        <div id="dropzone" class="dropzone">
-          <div class="dzTop">
-            <div>
-              <strong>Upload a file</strong>
-              <div class="small">CSV recommended · XLSX supported (if library loads)</div>
-            </div>
-            <button id="chooseFileBtn" class="fileBtn" type="button">Choose file</button>
-            <input id="fileInput" class="fileInput" type="file"
-              accept=".xlsx,.xls,.csv,.tsv,.txt,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/tab-separated-values">
-          </div>
-
-          <div class="hint">
-            Format required: <strong>two columns, no headers</strong><br>
-            Column A = <strong>Hub Name</strong>, Column B = <strong>Postcode</strong>
-          </div>
-
-          <div class="actions" style="margin-top:8px;">
-            <button id="templateBtn" class="btn btnSmall" type="button">Download CSV template</button>
-            <button id="clearUploadBtn" class="btn btnSmall" type="button">Clear upload</button>
-          </div>
-
-          <div class="uploadStatus" id="uploadStatus">No file loaded yet.</div>
+      <!-- Step 1 -->
+      <section class="step step1 collapseHide">
+        <div class="sectionHeader">
+          <h2>Step 1 — Central location</h2>
+          <span class="badge">1</span>
         </div>
 
-        <div id="uploadPreview" class="panel" style="display:none;">
-          <div class="panelTop">
-            <strong>Upload preview</strong>
-            <span id="uploadPill" class="statusPill warn">Needs attention</span>
+        <label for="centre">Central postcode</label>
+        <input id="centre" placeholder="e.g. E1 6AN" autocapitalize="characters">
+
+        <label for="centreName">Centre name (optional)</label>
+        <input id="centreName" placeholder="e.g. Birmingham City Centre">
+
+        <div class="hint">We’ll use this as the anchor point for the radius ring and distance calculations.</div>
+      </section>
+
+      <!-- Step 2 -->
+      <section class="step step2 collapseHide">
+        <div class="sectionHeader">
+          <h2>Step 2 — Hubs to map</h2>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span id="dataStatus" class="statusPill warn">No hubs loaded</span>
+            <span class="badge">2</span>
           </div>
-          <div class="panelBody">
-            <div class="kv">
-              <div>Rows read</div><div><b id="rowsRead">0</b></div>
-              <div>Valid hubs</div><div><b id="validCount">0</b></div>
-              <div>Invalid rows</div><div><b id="invalidCount">0</b></div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Hub input method">
+          <button id="tabBulk" class="tab active" type="button" role="tab" aria-selected="true">Bulk Upload</button>
+          <button id="tabManual" class="tab" type="button" role="tab" aria-selected="false">Manual Input</button>
+        </div>
+
+        <!-- Bulk panel -->
+        <div id="panelBulk">
+          <div id="dropzone" class="dropzone">
+            <div class="dzTop">
+              <div>
+                <strong>Upload a file</strong>
+                <div class="small">CSV recommended · XLSX supported (if library loads)</div>
+              </div>
+              <button id="chooseFileBtn" class="fileBtn" type="button">Choose file</button>
+              <input id="fileInput" class="fileInput" type="file"
+                accept=".xlsx,.xls,.csv,.tsv,.txt,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,text/tab-separated-values">
             </div>
-
-            <table class="previewTable" id="previewTable">
-              <thead>
-                <tr>
-                  <th style="width:55%;">Hub name</th>
-                  <th class="mono">Postcode</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-
-            <details class="errList" id="invalidDetails" style="display:none;">
-              <summary>Show invalid rows</summary>
-              <div class="errItems" id="invalidItems"></div>
-            </details>
 
             <div class="hint">
-              If rows are wrong-way-round, we’ll ask before swapping columns.
+              Format required: <strong>two columns, no headers</strong><br>
+              Column A = <strong>Hub Name</strong>, Column B = <strong>Postcode</strong>
+            </div>
+
+            <div class="actions" style="margin-top:8px;">
+              <button id="templateBtn" class="btn btnSmall" type="button">Download CSV template</button>
+              <button id="clearUploadBtn" class="btn btnSmall" type="button">Clear upload</button>
+            </div>
+
+            <div class="uploadStatus" id="uploadStatus">No file loaded yet.</div>
+          </div>
+
+          <div id="uploadPreview" class="panel" style="display:none;">
+            <div class="panelTop">
+              <strong>Upload preview</strong>
+              <span id="uploadPill" class="statusPill warn">Needs attention</span>
+            </div>
+            <div class="panelBody">
+              <div class="kv">
+                <div>Rows read</div><div><b id="rowsRead">0</b></div>
+                <div>Valid hubs</div><div><b id="validCount">0</b></div>
+                <div>Invalid rows</div><div><b id="invalidCount">0</b></div>
+              </div>
+
+              <table class="previewTable" id="previewTable">
+                <thead>
+                  <tr>
+                    <th style="width:55%;">Hub name</th>
+                    <th class="mono">Postcode</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+
+              <details class="errList" id="invalidDetails" style="display:none;">
+                <summary>Show invalid rows</summary>
+                <div class="errItems" id="invalidItems"></div>
+              </details>
+
+              <div class="microHint">
+                Tip: once mapped, <strong>hover (or tap)</strong> a hub icon to see its name.
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Manual panel -->
-      <div id="panelManual" style="display:none;">
-        <div class="hint">
-          Add hubs manually below. You can add more rows — but bulk upload is best if you have lots.
+        <!-- Manual panel -->
+        <div id="panelManual" style="display:none;">
+          <div class="hint">
+            Add hubs manually below. If you have a long list, bulk upload is faster.
+          </div>
+
+          <div class="manualWrap">
+            <div class="manualHead">
+              <div>#</div>
+              <div>Hub name</div>
+              <div>Postcode</div>
+              <div></div>
+            </div>
+            <div id="manualRows"></div>
+          </div>
+
+          <div class="actions" style="margin-top:10px;">
+            <button id="addRowBtn" class="btn btnSmall" type="button">Add row</button>
+            <button id="clearManualBtn" class="btn btnSmall" type="button">Clear manual</button>
+          </div>
+
+          <div id="manualPreview" class="panel" style="margin-top:10px;">
+            <div class="panelTop">
+              <strong>Manual validation</strong>
+              <span id="manualPill" class="statusPill warn">Not ready</span>
+            </div>
+            <div class="panelBody">
+              <div class="kv">
+                <div>Rows filled</div><div><b id="manualFilled">0</b></div>
+                <div>Valid hubs</div><div><b id="manualValid">0</b></div>
+                <div>Invalid postcodes</div><div><b id="manualInvalid">0</b></div>
+              </div>
+              <details class="errList" id="manualInvalidDetails" style="display:none;">
+                <summary>Show invalid entries</summary>
+                <div class="errItems" id="manualInvalidItems"></div>
+              </details>
+              <div class="microHint">
+                Tip: once mapped, <strong>hover (or tap)</strong> a hub icon to see its name.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 3 -->
+      <section class="step step3 collapseHide">
+        <div class="sectionHeader">
+          <h2>Step 3 — Parameters</h2>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <span id="readyStatus" class="statusPill warn">Not ready</span>
+            <span class="badge">3</span>
+          </div>
         </div>
 
-        <div class="manualWrap">
-          <div class="manualHead">
-            <div>#</div>
-            <div>Hub name</div>
-            <div>Postcode</div>
-            <div></div>
+        <div class="row">
+          <div>
+            <label for="radius">Radius (km)</label>
+            <input id="radius" type="number" value="5" step="0.1" min="0.1">
           </div>
-          <div id="manualRows"></div>
+
+          <div>
+            <label for="ringPreset">Ring colour</label>
+            <select id="ringPreset">
+              <option value="#00a39e" selected>Teal</option>
+              <option value="#f55426">Orange</option>
+              <option value="#031366">Ink</option>
+              <option value="#f529a6">Magenta</option>
+              <option value="#f7bf29">Yellow</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="customColorWrap" style="display:none; margin-top:10px;">
+          <label for="ringColor">Custom colour</label>
+          <input id="ringColor" type="color" value="#00a39e" style="padding:6px; height:42px;">
+        </div>
+
+        <div class="actions">
+          <button id="runBtn" class="btn btnPrimary" type="button" disabled>Map hubs</button>
+          <button id="clearAllBtn" class="btn" type="button">Clear</button>
         </div>
 
         <div class="actions" style="margin-top:10px;">
-          <button id="addRowBtn" class="btn btnSmall" type="button">Add row</button>
-          <button id="clearManualBtn" class="btn btnSmall" type="button">Clear manual</button>
+          <button id="fitRingBtn" class="btn btnSmall" type="button">Fit radius</button>
+          <button id="fitAllBtn" class="btn btnSmall" type="button">Fit all hubs</button>
+          <button id="resetViewBtn" class="btn btnSmall" type="button">Reset view</button>
         </div>
 
-        <div id="manualPreview" class="panel" style="margin-top:10px;">
-          <div class="panelTop">
-            <strong>Manual validation</strong>
-            <span id="manualPill" class="statusPill warn">Not ready</span>
-          </div>
-          <div class="panelBody">
-            <div class="kv">
-              <div>Rows filled</div><div><b id="manualFilled">0</b></div>
-              <div>Valid hubs</div><div><b id="manualValid">0</b></div>
-              <div>Invalid postcodes</div><div><b id="manualInvalid">0</b></div>
-            </div>
-            <details class="errList" id="manualInvalidDetails" style="display:none;">
-              <summary>Show invalid entries</summary>
-              <div class="errItems" id="manualInvalidItems"></div>
-            </details>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Stage 3 -->
-    <section class="stage stage3">
-      <div class="sectionHeader">
-        <h2>Stage 3 — Parameters</h2>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <span id="readyStatus" class="statusPill warn">Not ready</span>
-          <span class="badge">3</span>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label for="radius">Radius (km)</label>
-          <input id="radius" type="number" value="5" step="0.1" min="0.1">
+        <div class="stats">
+          <div class="stat"><div class="k">Inside radius</div><div class="v" id="inCount">0</div></div>
+          <div class="stat"><div class="k">Outside radius</div><div class="v" id="outCount">0</div></div>
+          <div class="stat"><div class="k">Mapped</div><div class="v" id="totalCount">0</div></div>
         </div>
 
-        <div>
-          <label for="ringPreset">Ring colour</label>
-          <select id="ringPreset">
-            <option value="#00a39e" selected>Teal</option>
-            <option value="#f55426">Orange</option>
-            <option value="#031366">Ink</option>
-            <option value="#f529a6">Magenta</option>
-            <option value="#f7bf29">Yellow</option>
-            <option value="custom">Custom…</option>
-          </select>
+        <div class="error" id="err"></div>
+        <div class="hint">
+          On the map: <strong>hover (desktop)</strong> or <strong>tap (mobile)</strong> a hub icon to see the hub name.
         </div>
+      </section>
+
+      <div class="microHint collapseHide" style="padding: 0 4px 10px;">
+        Basemap: CARTO Positron · Hosted via GitHub Pages
       </div>
-
-      <div id="customColorWrap" style="display:none; margin-top:10px;">
-        <label for="ringColor">Custom colour</label>
-        <input id="ringColor" type="color" value="#00a39e" style="padding:6px; height:42px;">
-      </div>
-
-      <div class="actions">
-        <button id="runBtn" class="btn btnPrimary" type="button" disabled>Map hubs</button>
-        <button id="clearAllBtn" class="btn btnGhost" type="button">Clear</button>
-      </div>
-
-      <div class="actions" style="margin-top:10px;">
-        <button id="fitRingBtn" class="btn btnSmall" type="button">Fit radius</button>
-        <button id="fitAllBtn" class="btn btnSmall" type="button">Fit all hubs</button>
-        <button id="resetViewBtn" class="btn btnSmall" type="button">Reset view</button>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><div class="k">Inside radius</div><div class="v" id="inCount">0</div></div>
-        <div class="stat"><div class="k">Outside radius</div><div class="v" id="outCount">0</div></div>
-        <div class="stat"><div class="k">Mapped</div><div class="v" id="totalCount">0</div></div>
-      </div>
-
-      <div class="error" id="err"></div>
-      <div class="hint">Geocoding uses postcodes.io. If some rows don’t map, we’ll list them clearly.</div>
-    </section>
-
-    <div class="hint" style="padding: 0 4px 10px;">
-      Basemap: CARTO Positron · Hosted via GitHub Pages
     </div>
   </aside>
 
@@ -733,29 +818,20 @@
   });
 
   // =========================
-  // State machine (trust UX)
+  // State machine
   // =========================
-  // hubState: empty | loaded | ready
-  let hubState = "empty";
-  let hubMode = "bulk"; // bulk | manual
+  let hubState = "empty"; // empty | loaded | ready
+  let hubMode = "bulk";   // bulk | manual
 
-  // bulk data store:
-  // {
-  //   fileName, rowsRead, validHubs:[{name, postcode}], invalidRows:[{row, name, postcode, reason}],
-  //   swapped:boolean
-  // }
   let uploadData = null;
 
   function setHubState(state){
     hubState = state;
 
-    if (state === "empty"){
-      pill($("dataStatus"), "warn", "No hubs loaded");
-    } else if (state === "loaded"){
-      pill($("dataStatus"), "warn", "Loaded · needs review");
-    } else {
-      pill($("dataStatus"), "ok", "Ready");
-    }
+    if (state === "empty") pill($("dataStatus"), "warn", "No hubs loaded");
+    else if (state === "loaded") pill($("dataStatus"), "warn", "Loaded · review");
+    else pill($("dataStatus"), "ok", "Ready");
+
     refreshReadiness();
   }
 
@@ -799,7 +875,7 @@
   });
 
   // =========================
-  // Legend
+  // Legend (includes hover/tap instruction)
   // =========================
   function addLegend(ringColor){
     if (legendControl) { map.removeControl(legendControl); legendControl = null; }
@@ -815,6 +891,9 @@
           <span>Hub</span>
         </div>
         <div class="legendRow"><span class="legendRing" style="border-color:${ringColor}"></span><span>Radius ring</span></div>
+        <div class="legendNote">
+          Tip: <strong>hover</strong> (desktop) or <strong>tap</strong> (mobile) a hub to see details.
+        </div>
       `;
       L.DomEvent.disableClickPropagation(div);
       L.DomEvent.disableScrollPropagation(div);
@@ -836,13 +915,8 @@
       $("panelBulk").style.display = "block";
       $("panelManual").style.display = "none";
 
-      // bulk readiness depends on uploadData
-      if (!uploadData || !uploadData.validHubs?.length){
-        setHubState("empty");
-      } else {
-        // if they’ve reviewed / fixed, keep ready; else loaded
-        setHubState(uploadData.invalidRows?.length ? "loaded" : "ready");
-      }
+      if (!uploadData || !uploadData.validHubs?.length) setHubState("empty");
+      else setHubState(uploadData.invalidRows?.length ? "loaded" : "ready");
     } else {
       $("tabManual").classList.add("active");
       $("tabBulk").classList.remove("active");
@@ -851,7 +925,7 @@
       $("panelManual").style.display = "block";
       $("panelBulk").style.display = "none";
 
-      validateManual(); // updates state
+      validateManual();
     }
     setError("");
     refreshReadiness();
@@ -861,7 +935,7 @@
   $("tabManual").addEventListener("click", () => setMode("manual"));
 
   // =========================
-  // Manual table UX
+  // Manual rows
   // =========================
   const manualRowsEl = $("manualRows");
 
@@ -943,7 +1017,7 @@
       const name = (inputs[0]?.value || "").trim();
       const pcRaw = (inputs[1]?.value || "").trim();
       const postcode = norm(pcRaw);
-      if (!name && !postcode) return; // skip blank rows
+      if (!name && !postcode) return;
       hubs.push({ name: name || "Hub", postcode, row: r.dataset.row, _pcInput: inputs[1] });
     });
     return hubs;
@@ -958,7 +1032,6 @@
     let invalid = 0;
     const badList = [];
 
-    // clear invalid styling first
     hubs.forEach(h => h._pcInput?.classList.remove("invalid"));
 
     hubs.forEach(h => {
@@ -966,9 +1039,7 @@
         invalid++;
         badList.push(`Row ${h.row}: invalid postcode (“${h.postcode || ""}”)`);
         h._pcInput?.classList.add("invalid");
-      } else {
-        valid++;
-      }
+      } else valid++;
     });
 
     $("manualFilled").textContent = String(filled);
@@ -977,6 +1048,7 @@
 
     const det = $("manualInvalidDetails");
     const items = $("manualInvalidItems");
+
     if (badList.length){
       det.style.display = "block";
       items.innerHTML = badList.map(x => `<div class="bad">${escapeHtml(x)}</div>`).join("");
@@ -998,7 +1070,7 @@
   }
 
   // =========================
-  // Upload UX + preview + validation
+  // Upload
   // =========================
   const dropzone = $("dropzone");
   const fileInput = $("fileInput");
@@ -1008,7 +1080,7 @@
   chooseFileBtn.addEventListener("click", () => fileInput.click());
 
   $("templateBtn").addEventListener("click", () => {
-    const csv = `Hub name,Postcode\nExample Hub,SW1A 1AA\n`;
+    const csv = `Example Hub,SW1A 1AA\n`;
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1050,7 +1122,6 @@
     fileInput.value = "";
   });
 
-  // CSV parser (robust enough for simple exports)
   function parseCSV(text){
     const rows = [];
     let row = [], cur = "", inQuotes = false;
@@ -1066,9 +1137,7 @@
         if (ch === "\r" && next === "\n") i++;
         row.push(cur); rows.push(row);
         row = []; cur = "";
-      } else {
-        cur += ch;
-      }
+      } else cur += ch;
     }
     if (cur.length || row.length){ row.push(cur); rows.push(row); }
     return rows;
@@ -1079,10 +1148,8 @@
     for (const r of rows){
       const a = (r?.[0] ?? "").toString().trim();
       const b = (r?.[1] ?? "").toString().trim();
-      const c = (r?.[2] ?? "").toString().trim();
-      // If there are 3+ cols and col3 isn't empty, flag later in preview messaging via rowsRead only; still proceed using first 2 cols.
       if (!a && !b) continue;
-      cleaned.push([a,b,c]);
+      cleaned.push([a,b]);
     }
     return cleaned;
   }
@@ -1105,16 +1172,10 @@
     $("validCount").textContent = String(data.validHubs.length);
     $("invalidCount").textContent = String(data.invalidRows.length);
 
-    // pill
-    if (data.validHubs.length > 0 && data.invalidRows.length === 0){
-      pill($("uploadPill"), "ok", "Ready");
-    } else if (data.validHubs.length > 0){
-      pill($("uploadPill"), "warn", "Review");
-    } else {
-      pill($("uploadPill"), "bad", "Not usable");
-    }
+    if (data.validHubs.length > 0 && data.invalidRows.length === 0) pill($("uploadPill"), "ok", "Ready");
+    else if (data.validHubs.length > 0) pill($("uploadPill"), "warn", "Review");
+    else pill($("uploadPill"), "bad", "Not usable");
 
-    // table preview (first 6 valid)
     const tb = $("previewTable").querySelector("tbody");
     tb.innerHTML = "";
     data.validHubs.slice(0,6).forEach(h => {
@@ -1124,18 +1185,15 @@
     });
     if (data.validHubs.length === 0){
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td colspan="2" style="color:rgba(3,19,102,.70); font-weight:900;">No valid hubs detected yet.</td>`;
+      tr.innerHTML = `<td colspan="2" style="color:rgba(3,19,102,.75); font-weight:1000;">No valid hubs detected yet.</td>`;
       tb.appendChild(tr);
     }
 
-    // invalid list
     if (data.invalidRows.length){
       $("invalidDetails").style.display = "block";
-      const items = data.invalidRows
-        .slice(0,200)
+      $("invalidItems").innerHTML = data.invalidRows.slice(0,200)
         .map(x => `<div class="bad">Row ${x.row}: ${escapeHtml(x.reason)} (A="${escapeHtml(x.nameRaw)}", B="${escapeHtml(x.postcodeRaw)}")</div>`)
         .join("");
-      $("invalidItems").innerHTML = items;
     } else {
       $("invalidDetails").style.display = "none";
       $("invalidItems").innerHTML = "";
@@ -1157,7 +1215,7 @@
         rows = parseCSV(text);
       } else {
         if (typeof XLSX === "undefined"){
-          throw new Error("Spreadsheet library didn’t load (XLSX is not defined). CSV uploads will work; for XLSX, refresh the page or stick to CSV.");
+          throw new Error("Spreadsheet library didn’t load (XLSX missing). CSV uploads will work; for XLSX refresh or use CSV.");
         }
         const buf = await file.arrayBuffer();
         const wb = XLSX.read(buf, { type: "array" });
@@ -1167,25 +1225,20 @@
         rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: "" });
       }
 
-      const raw = normaliseRowsToTwoCols(rows);
-      if (!raw.length) throw new Error("No usable rows found. Put data in the first two columns.");
+      let twoCols = normaliseRowsToTwoCols(rows);
+      if (!twoCols.length) throw new Error("No usable rows found. Put data in the first two columns.");
 
-      // detect header-ish (best effort)
-      const firstA = (raw[0][0] || "").toString().toLowerCase();
-      const firstB = (raw[0][1] || "").toString().toLowerCase();
+      // header-ish detect (best effort)
+      const firstA = (twoCols[0][0] || "").toString().toLowerCase();
+      const firstB = (twoCols[0][1] || "").toString().toLowerCase();
       const headerish = (firstA.includes("hub") || firstA.includes("name") || firstA.includes("organisation")) &&
                         (firstB.includes("post") || firstB.includes("zip") || firstB.includes("code"));
       if (headerish){
-        const ok = window.confirm(
-          `Your first row looks like a header.\n\nThis tool expects NO headers.\n\nOK = Continue anyway\nCancel = Stop`
-        );
+        const ok = window.confirm(`Your first row looks like a header.\n\nThis tool expects NO headers.\n\nOK = Continue anyway\nCancel = Stop`);
         if (!ok) throw new Error("Upload cancelled (header row detected).");
       }
 
-      // build 2-col view
-      let twoCols = raw.map(r => [r[0], r[1]]);
-
-      // swapped detection + confirm
+      // swap detect + confirm
       const { expected, swapped } = assessSwap(twoCols);
       let didSwap = false;
       if (swapped > 0 && swapped >= expected * 1.5){
@@ -1199,7 +1252,7 @@
         didSwap = true;
       }
 
-      // validate rows -> hubs + invalid list
+      // validate
       const validHubs = [];
       const invalidRows = [];
       twoCols.forEach((r, i) => {
@@ -1207,30 +1260,16 @@
         const postcodeRaw = (r[1] ?? "").toString().trim();
         const pc = norm(postcodeRaw);
 
-        if (!nameRaw && !pc) return; // skip blank row
+        if (!nameRaw && !pc) return;
 
         if (!pc || !looksLikePostcode(pc)){
-          invalidRows.push({
-            row: i+1,
-            nameRaw,
-            postcodeRaw,
-            reason: "Invalid postcode"
-          });
+          invalidRows.push({ row:i+1, nameRaw, postcodeRaw, reason:"Invalid postcode" });
         } else {
-          validHubs.push({
-            name: nameRaw || "Hub",
-            postcode: pc
-          });
+          validHubs.push({ name: nameRaw || "Hub", postcode: pc });
         }
       });
 
-      uploadData = {
-        fileName: file.name,
-        rowsRead: twoCols.length,
-        validHubs,
-        invalidRows,
-        swapped: didSwap
-      };
+      uploadData = { fileName:file.name, rowsRead: twoCols.length, validHubs, invalidRows, swapped: didSwap };
 
       uploadStatus.textContent =
         `Loaded "${file.name}": ${validHubs.length} valid hub(s)` +
@@ -1240,17 +1279,10 @@
 
       renderUploadPreview(uploadData);
 
-      // update state
-      if (validHubs.length === 0){
-        setHubState("loaded");
-        pill($("uploadPill"), "bad", "Not usable");
-      } else if (invalidRows.length){
-        setHubState("loaded"); // loaded but needs review
-      } else {
-        setHubState("ready");
-      }
+      if (validHubs.length === 0) setHubState("loaded");
+      else if (invalidRows.length) setHubState("loaded");
+      else setHubState("ready");
 
-      // stay in bulk mode
       setMode("bulk");
     } catch (e){
       uploadData = null;
@@ -1262,7 +1294,7 @@
   }
 
   // =========================
-  // Geocoding (ORDER-PRESERVING)
+  // Geocoding (order-preserving)
   // =========================
   async function geocodeSingle(pc) {
     const r = await fetch("https://api.postcodes.io/postcodes/" + encodeURIComponent(pc));
@@ -1271,7 +1303,6 @@
     return j.result;
   }
 
-  // IMPORTANT: do NOT filter out failures; keep order
   async function geocodeBulkOrdered(postcodes) {
     const r = await fetch("https://api.postcodes.io/postcodes", {
       method: "POST",
@@ -1280,8 +1311,7 @@
     });
     const j = await r.json();
     if (!j.result) throw new Error("Bulk lookup failed");
-    // Each item: {query, result}
-    return j.result;
+    return j.result; // [{query,result}]
   }
 
   // =========================
@@ -1310,17 +1340,19 @@
   }
 
   $("runBtn").addEventListener("click", run);
+
   $("clearAllBtn").addEventListener("click", () => {
     setError("");
     $("centre").value = "";
     $("centreName").value = "";
     $("radius").value = "5";
     clearMapOnly();
+
     uploadData = null;
     uploadStatus.textContent = "No file loaded yet.";
     $("uploadPreview").style.display = "none";
     setHubState("empty");
-    // reset manual
+
     manualRowsEl.innerHTML = "";
     for (let i=0; i<10; i++) addManualRow();
     validateManual();
@@ -1334,13 +1366,12 @@
     if (lastAllBounds) map.fitBounds(lastAllBounds, { padding: [30,30] });
   });
   $("resetViewBtn").addEventListener("click", () => {
-    map.setView([54.5, -3.2], 6); // UK-ish view
+    map.setView([54.5, -3.2], 6);
   });
 
   async function run(){
     setError("");
     $("runBtn").disabled = true;
-
     clearMapOnly();
 
     try{
@@ -1352,15 +1383,12 @@
       if (!centrePc) throw new Error("Enter a central postcode.");
       if (!Number.isFinite(radiusKm) || radiusKm <= 0) throw new Error("Radius must be a positive number (km).");
 
-      // hubs source
       let hubs;
       if (hubMode === "bulk"){
         if (!uploadData || !uploadData.validHubs?.length) throw new Error("Upload hubs first.");
         if (hubState !== "ready" && uploadData.invalidRows?.length){
-          // not hard-blocking, but we warn: next level trust UX
           const ok = window.confirm(
-            `Your upload contains invalid rows.\n\n` +
-            `OK = Map only the valid hubs (${uploadData.validHubs.length})\nCancel = Go back and fix`
+            `Your upload contains invalid rows.\n\nOK = Map only the valid hubs (${uploadData.validHubs.length})\nCancel = Go back and fix`
           );
           if (!ok) throw new Error("Mapping cancelled.");
         }
@@ -1382,7 +1410,7 @@
         .bindTooltip(escapeHtml(centreName), { permanent:false, direction:"top", offset:[0,-8] })
         .openPopup();
 
-      // Radius ring + glow
+      // Ring glow + solid ring (NO dashes)
       radiusGlow = L.circle(cLatLng, {
         radius: radiusKm * 1000,
         fill: false,
@@ -1397,18 +1425,14 @@
         fill: false,
         color: ringColor,
         opacity: 0.95,
-        weight: 6,
-        dashArray: "8 8"
+        weight: 6
       }).addTo(map);
 
       addLegend(ringColor);
-
-      // Store ring bounds for Fit radius
       lastRingBounds = radiusCircle.getBounds();
 
-      // Geocode hubs order-preserving
-      const postcodeList = hubs.map(h => h.postcode);
-      const bulk = await geocodeBulkOrdered(postcodeList);
+      // Geocode hubs (order-preserving)
+      const bulk = await geocodeBulkOrdered(hubs.map(h => h.postcode));
 
       let inside = 0, outside = 0, mapped = 0;
       const allLatLngs = [cLatLng];
@@ -1431,24 +1455,24 @@
         if (d <= radiusKm) inside++; else outside++;
 
         const marker = L.marker(ll, { icon: HUB_ICON }).addTo(layerGroup);
+
+        // Tooltip + popup = "hover or tap for details"
         marker.bindTooltip(escapeHtml(meta.name), { direction:"top", offset:[0,-6], opacity:0.95, sticky:true });
         marker.bindPopup(`<strong>${escapeHtml(meta.name)}</strong>`);
       });
 
-      // Fit all bounds (centre + mapped hubs)
       lastAllBounds = L.latLngBounds(allLatLngs);
       map.fitBounds(lastAllBounds, { padding: [30,30] });
 
       setCounts(inside, outside, mapped);
 
       if (failed.length){
-        // Keep it human + actionable
-        const msg =
+        setError(
           `Some hubs couldn’t be mapped (${failed.length}).\n\n` +
           `These postcodes weren’t returned by postcodes.io:\n- ` +
           failed.slice(0, 30).join("\n- ") +
-          (failed.length > 30 ? `\n… (+${failed.length - 30} more)` : "");
-        setError(msg);
+          (failed.length > 30 ? `\n… (+${failed.length - 30} more)` : "")
+        );
       }
     } catch (e){
       setError(e?.message || String(e));
@@ -1458,6 +1482,27 @@
       refreshReadiness();
     }
   }
+
+  // =========================
+  // Sidebar collapse
+  // =========================
+  const sidebarShell = $("sidebarShell");
+  const collapseBtn = $("collapseBtn");
+
+  function setCollapsed(collapsed){
+    sidebarShell.classList.toggle("collapsed", collapsed);
+    collapseBtn.textContent = collapsed ? "⟩" : "⟨";
+    collapseBtn.setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+    collapseBtn.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+
+    // Give Leaflet a nudge so tiles reflow cleanly
+    setTimeout(() => map.invalidateSize(), 220);
+  }
+
+  collapseBtn.addEventListener("click", () => {
+    const isCollapsed = sidebarShell.classList.contains("collapsed");
+    setCollapsed(!isCollapsed);
+  });
 
   // =========================
   // Helpers
@@ -1479,19 +1524,14 @@
       .replaceAll("'", "&#039;");
   }
 
-  // =========================
-  // Inputs that affect readiness
-  // =========================
-  $("centre").addEventListener("input", debounce(() => {
-    // basic UI cue only; real validation happens when mapping
-    refreshReadiness();
-  }, 150));
+  // Readiness inputs
+  $("centre").addEventListener("input", debounce(refreshReadiness, 150));
   $("radius").addEventListener("input", debounce(refreshReadiness, 150));
 
-  // Initial state
+  // Init
   setMode("bulk");
   setHubState("empty");
-  validateManual(); // sets manual panel stats (even if hidden)
+  validateManual();
   refreshReadiness();
 </script>
 </body>
