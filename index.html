@@ -48,10 +48,7 @@
       line-height: var(--lh);
       color: var(--ink);
       background: #f7f8ff;
-
-      /* Brand font */
       font-family: "Rubik", Helvetica, Arial, sans-serif;
-
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -116,7 +113,6 @@
       box-shadow: var(--shadow2), var(--focus);
     }
 
-    /* When collapsed, keep toggle positioned nicely */
     body.sidebarCollapsed .sidebarToggle{
       right: -18px;
       left: auto;
@@ -175,9 +171,6 @@
       inset:0;
       background: rgba(255,255,255,.35);
       pointer-events:auto; /* blocks interactions */
-    }
-    .step.locked .statusPill{
-      background: rgba(3,19,102,.06);
     }
 
     .sectionHeader{
@@ -238,7 +231,7 @@
 
     input, textarea, select{
       width:100%;
-      min-height: 44px;            /* touch target */
+      min-height: 44px;
       border: 1px solid var(--muted);
       border-radius: 12px;
       padding: 11px 12px;
@@ -257,9 +250,7 @@
     }
 
     /* Postcode inputs: always show caps */
-    .postcodeInput{
-      text-transform: uppercase;
-    }
+    .postcodeInput{ text-transform: uppercase; }
 
     .hint{
       font-size: 14px;
@@ -322,33 +313,29 @@
       min-height: 40px;
     }
 
-    /* Full-width helper (for Step 3 button cleanliness) */
-    .btnFull{
-      width: 100%;
-      flex: 1 1 100%;
-    }
-
-    /* Make a row of equal-width full buttons */
+    /* Equal-width button row (Step 3) */
     .actionsEqual{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
       gap: 10px;
       margin-top: 10px;
     }
-    .actionsEqual .btn{
-      width:100%;
-    }
+    .actionsEqual .btn{ width:100%; }
 
     /* Step navigation */
-    .stepNav{
+    .stepNavSingle{
+      display:flex;
+      margin-top: 12px;
+    }
+    .stepNavSingle .btn{ width:100%; }
+
+    .stepNavTwo{
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap:10px;
       margin-top: 12px;
     }
-    .stepNav .btn{
-      width:100%;
-    }
+    .stepNavTwo .btn{ width:100%; }
 
     /* Tabs */
     .tabs{
@@ -380,7 +367,7 @@
     }
     .tab:focus-visible{ outline:none; box-shadow: var(--shadow2), var(--focus); }
 
-    /* Upload area (NO dashed line) */
+    /* Upload area */
     .dropzone{
       border: 1px solid rgba(3,19,102,.14);
       border-radius: 14px;
@@ -563,28 +550,18 @@
         border-right:none;
         border-bottom: 1px solid var(--muted);
       }
-
-      /* On mobile, keep sidebar visible (collapse becomes a compact header rail) */
       body.sidebarCollapsed aside.sidebar{
         width: 100%;
         min-width: 100%;
         padding: 10px 12px;
         border-bottom: 1px solid var(--muted);
       }
-      body.sidebarCollapsed .sidebarInner{
-        display:none;
-      }
-
-      .sidebarToggle{
-        right: 14px;
-        left: auto;
-        top: 14px;
-      }
-
+      body.sidebarCollapsed .sidebarInner{ display:none; }
+      .sidebarToggle{ right: 14px; left: auto; top: 14px; }
       #map{ height: 60vh; }
       .manualHead, .manualGridRow{ grid-template-columns: 36px 1fr 120px 40px; }
-      .actionsEqual{ grid-template-columns: 1fr; } /* stack on small screens */
-      .stepNav{ grid-template-columns: 1fr; }
+      .actionsEqual{ grid-template-columns: 1fr; }
+      .stepNavTwo{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -618,10 +595,8 @@
 
         <div class="hint">We’ll use this as the anchor point for the radius ring and distance calculations.</div>
 
-        <!-- Step 1 nav -->
-        <div class="stepNav">
+        <div class="stepNavSingle">
           <button id="toStep2Btn" class="btn btnPrimary" type="button" disabled>Next</button>
-          <button class="btn" type="button" disabled aria-disabled="true" title="Complete Step 1 first">Previous</button>
         </div>
       </section>
 
@@ -696,8 +671,7 @@
           </div>
         </div>
 
-        <!-- Step 2 nav -->
-        <div class="stepNav">
+        <div class="stepNavTwo">
           <button id="backToStep1Btn" class="btn" type="button">Previous</button>
           <button id="toStep3Btn" class="btn btnPrimary" type="button" disabled>Next</button>
         </div>
@@ -739,10 +713,9 @@
 
         <div class="actions">
           <button id="runBtn" class="btn btnPrimary" type="button" disabled>Map hubs</button>
-          <button id="clearAllBtn" class="btn" type="button">Clear</button>
+          <button id="restartBtn" class="btn" type="button">Restart</button>
         </div>
 
-        <!-- Equal width + full width buttons -->
         <div class="actionsEqual">
           <button id="fitRingBtn" class="btn btnSmall" type="button">Fit radius</button>
           <button id="fitAllBtn" class="btn btnSmall" type="button">Fit all hubs</button>
@@ -757,12 +730,6 @@
 
         <div class="error" id="err"></div>
         <div class="hint">On the map: <strong>hover</strong> (desktop) or <strong>tap</strong> (mobile) a hub icon to see the hub name.</div>
-
-        <!-- Step 3 nav -->
-        <div class="stepNav">
-          <button id="backToStep2Btn" class="btn" type="button">Previous</button>
-          <button class="btn btnPrimary" type="button" disabled aria-disabled="true" title="You’re at the final step">Next</button>
-        </div>
       </section>
 
       <div class="microHint" style="padding: 0 4px 10px;">
@@ -832,7 +799,6 @@
       const up = (inputEl.value || "").toUpperCase();
       if (inputEl.value !== up){
         inputEl.value = up;
-        // keep caret roughly stable
         try { inputEl.setSelectionRange(start, end); } catch {}
       }
     });
@@ -851,7 +817,6 @@
   const toStep2Btn = $("toStep2Btn");
   const toStep3Btn = $("toStep3Btn");
   const backToStep1Btn = $("backToStep1Btn");
-  const backToStep2Btn = $("backToStep2Btn");
 
   let currentStep = 1;
 
@@ -869,7 +834,6 @@
     if (hubMode === "bulk"){
       return !!(uploadData && uploadData.validHubs && uploadData.validHubs.length);
     }
-    // manual
     const hubs = getManualHubs();
     const valid = hubs.filter(h => h.postcode && looksLikePostcode(h.postcode));
     const invalid = hubs.filter(h => h.postcode && !looksLikePostcode(h.postcode));
@@ -877,21 +841,15 @@
   }
 
   function updateStepLocks(){
-    // Step 2 locked until centre postcode is valid
     const s2Unlocked = centreIsValid();
     lockStep(step2El, !s2Unlocked);
 
-    // Step 3 locked until centre valid AND hubs valid
     const s3Unlocked = centreIsValid() && hubsAreValid();
     lockStep(step3El, !s3Unlocked);
 
-    // Step 1 -> Step 2 button
     toStep2Btn.disabled = !s2Unlocked;
-
-    // Step 2 -> Step 3 button
     toStep3Btn.disabled = !s3Unlocked;
 
-    // If current step is now locked, bump user back to the latest unlocked step
     if (currentStep === 3 && !s3Unlocked){
       currentStep = s2Unlocked ? 2 : 1;
       scrollToStep(currentStep);
@@ -922,11 +880,6 @@
   backToStep1Btn.addEventListener("click", () => {
     currentStep = 1;
     scrollToStep(1);
-  });
-
-  backToStep2Btn.addEventListener("click", () => {
-    currentStep = 2;
-    scrollToStep(2);
   });
 
   // =========================
@@ -988,7 +941,7 @@
     if (hubMode === "bulk"){
       hubsOk = !!(uploadData && uploadData.validHubs && uploadData.validHubs.length);
     } else {
-      hubsOk = validateManual(false); // validate but don't spam errors
+      hubsOk = validateManual(false);
     }
 
     const ready = centreOk && radiusOk && hubsOk;
@@ -1144,7 +1097,6 @@
     renumberManual();
   }
 
-  // init 10 rows
   for (let i=0; i<10; i++) addManualRow();
 
   $("addRowBtn").addEventListener("click", () => addManualRow());
@@ -1314,7 +1266,6 @@
       let twoCols = normaliseRowsToTwoCols(rows);
       if (!twoCols.length) throw new Error("No usable rows found. Put data in the first two columns.");
 
-      // header-ish detect
       const firstA = (twoCols[0][0] || "").toString().toLowerCase();
       const firstB = (twoCols[0][1] || "").toString().toLowerCase();
       const headerish = (firstA.includes("hub") || firstA.includes("name") || firstA.includes("organisation")) &&
@@ -1378,7 +1329,7 @@
   }
 
   // =========================
-  // Geocoding (order-preserving)
+  // Geocoding
   // =========================
   async function geocodeSingle(pc) {
     const r = await fetch("https://api.postcodes.io/postcodes/" + encodeURIComponent(pc));
@@ -1395,7 +1346,7 @@
     });
     const j = await r.json();
     if (!j.result) throw new Error("Bulk lookup failed");
-    return j.result; // [{query,result}]
+    return j.result;
   }
 
   function distanceKm(aLat, aLon, bLat, bLon) {
@@ -1460,14 +1411,12 @@
       const centre = await geocodeSingle(centrePc);
       const cLatLng = [centre.latitude, centre.longitude];
 
-      // Centre marker
       L.marker(cLatLng)
         .addTo(layerGroup)
         .bindPopup(`<strong>${escapeHtml(centreName)}</strong>`)
         .bindTooltip(escapeHtml(centreName), { permanent:false, direction:"top", offset:[0,-8] })
         .openPopup();
 
-      // Radius glow + thicker solid ring (no dashes)
       radiusGlow = L.circle(cLatLng, {
         radius: radiusKm * 1000,
         fill: false,
@@ -1539,7 +1488,7 @@
   }
 
   // =========================
-  // Buttons (fit/reset/clear)
+  // Fit/reset
   // =========================
   $("fitRingBtn").addEventListener("click", () => {
     if (lastRingBounds) map.fitBounds(lastRingBounds, { padding: [30,30] });
@@ -1553,7 +1502,10 @@
     map.setView([54.5, -3.2], 6);
   });
 
-  $("clearAllBtn").addEventListener("click", () => {
+  // =========================
+  // Restart (reset everything + return to Step 1)
+  // =========================
+  function restartAll(){
     setError("");
     $("centre").value = "";
     $("centreName").value = "";
@@ -1571,7 +1523,9 @@
     currentStep = 1;
     scrollToStep(1);
     refreshReadiness();
-  });
+  }
+
+  $("restartBtn").addEventListener("click", restartAll);
 
   // =========================
   // Input watchers + postcode behaviour
